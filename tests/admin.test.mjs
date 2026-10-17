@@ -389,6 +389,11 @@ test("deletion APIs authorize before lookup or mutation, validate previews, and 
     const deps = {
       "@/lib/backend/admin": { requireAdmin },
       "@/lib/backend/admin-deletion": services,
+      "@/lib/backend/env": {
+        getApplicationOrigin() {
+          return "http://localhost:3000";
+        },
+      },
       "@/lib/backend/admin-deletion-validation": {
         applicationLookupSchema,
         applicationDeletionSchema,
@@ -465,5 +470,49 @@ test("deletion APIs authorize before lookup or mutation, validate previews, and 
       assert.equal(clients, 0);
       assert.equal((await invoke({}, "invalid")).status, expected);
     }
+  }
+});
+
+test("lookup validates the public APP_URL instead of Next's internal listener or proxy origin", async () => {
+  for (const origin of ["http://localhost:3000", "https://commons.example"]) {
+    const lookup = await serverModule(
+      "app/api/admin/applications/lookup/route.ts",
+      {
+        "@/lib/backend/admin": {
+          async requireAdmin() {
+            return { id: adminId };
+          },
+        },
+        "@/lib/backend/admin-deletion": {
+          async lookupAdminApplication(value, allowedOrigin) {
+            return { slug: applicationSlugFromUrl(value, allowedOrigin) };
+          },
+        },
+        "@/lib/backend/env": {
+          getApplicationOrigin() {
+            return origin;
+          },
+        },
+        "@/lib/backend/admin-deletion-validation": {
+          applicationLookupSchema,
+          deletionErrorResponse,
+        },
+        "@/lib/backend/errors": { ApiError, readJson },
+      },
+    );
+    const request = (url) =>
+      new Request("http://0.0.0.0:3000/api/admin/applications/lookup", {
+        method: "POST",
+        headers: { origin: "https://untrusted.example" },
+        body: JSON.stringify({ url }),
+      });
+    const response = await lookup.POST(request(origin + "/apps/skyblockhack"));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).data.slug, "skyblockhack");
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    const rejected = await lookup.POST(
+      request("https://untrusted.example/apps/skyblockhack"),
+    );
+    assert.equal(rejected.status, 422);
   }
 });

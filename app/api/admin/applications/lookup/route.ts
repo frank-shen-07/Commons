@@ -5,6 +5,7 @@ import {
   deletionErrorResponse,
 } from "@/lib/backend/admin-deletion-validation";
 import { ApiError, readJson } from "@/lib/backend/errors";
+import { getApplicationOrigin } from "@/lib/backend/env";
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       );
     const data = await lookupAdminApplication(
       parsed.data.url,
-      new URL(request.url).origin,
+      getApplicationOrigin(),
     );
     return Response.json(
       { data },
