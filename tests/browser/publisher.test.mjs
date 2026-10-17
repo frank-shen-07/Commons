@@ -1086,3 +1086,241 @@ test(
     }
   },
 );
+
+async function deletionWorkspace() {
+  const workspace = await adminWorkspace();
+  const state = {
+    calls: [],
+    failure: null,
+    lookups: [],
+    updatedAt: "2026-10-18T00:00:00.123456+00:00",
+  };
+  await workspace.context.route(
+    "**/api/admin/applications/**",
+    async (route) => {
+      const request = route.request();
+      const body = request.postDataJSON();
+      const json = (data, status = 200) =>
+        route.fulfill({
+          status,
+          contentType: "application/json",
+          body: JSON.stringify(data),
+        });
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      if (new URL(request.url()).pathname.endsWith("/lookup")) {
+        state.lookups.push(body);
+        return json({
+          data: {
+            id,
+            slug: "skyblockhack",
+            name: "Skyblock test application",
+            status: "published",
+            repositoryUrl: "https://github.com/test-publisher/skyblockhack",
+            publisher: {
+              displayName: "Test Publisher",
+              githubUsername: "test-publisher",
+            },
+            updatedAt: state.updatedAt,
+          },
+        });
+      }
+      state.calls.push({
+        method: request.method(),
+        path: new URL(request.url()).pathname,
+        body,
+      });
+      if (state.failure)
+        return json(
+          {
+            error: {
+              code:
+                state.failure === 409 ? "STALE_APPLICATION" : "INTERNAL_ERROR",
+              message: "Deletion failed. Find the application again.",
+            },
+          },
+          state.failure,
+        );
+      workspace.state.approved = true;
+      return json({ data: { id, slug: "skyblockhack", deleted: true } });
+    },
+  );
+  return { ...workspace, deletion: state };
+}
+
+test(
+  "admin deletion requires exact confirmation, prevents duplicate requests and clears matching review rows",
+  { timeout: 60000 },
+  async () => {
+    const { context, page, deletion } = await deletionWorkspace();
+    try {
+      await page.goto(base + "/admin");
+      await page
+        .getByLabel("Application URL", { exact: true })
+        .fill(base + "/apps/skyblockhack");
+      await page
+        .getByRole("button", { name: "Find application", exact: true })
+        .click();
+      await page
+        .getByRole("heading", { name: "Skyblock test application" })
+        .waitFor();
+      const confirm = page.getByLabel("Type skyblockhack to confirm deletion");
+      const remove = page.getByRole("button", {
+        name: "Permanently delete",
+        exact: true,
+      });
+      assert.equal(await remove.isDisabled(), true);
+      await confirm.fill("skyblock");
+      assert.equal(await remove.isDisabled(), true);
+      await confirm.fill("skyblockhack");
+      for (const width of [1440, 768, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.evaluate(async () => {
+          if (document.activeElement instanceof HTMLElement)
+            document.activeElement.blur();
+          await document.fonts.ready;
+          window.scrollTo({ top: 0, behavior: "instant" });
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+        });
+        await page.screenshot({
+          path: join(shots, `admin-delete-${width}.png`),
+          fullPage: true,
+        });
+        assert.ok(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `deletion overflow at ${width}`,
+        );
+      }
+      await remove.evaluate((element) => {
+        element.click();
+        element.click();
+      });
+      await page
+        .getByText(
+          "Skyblock test application was permanently deleted from Commons.",
+          { exact: true },
+        )
+        .waitFor();
+      await page
+        .getByRole("heading", { name: "No applications awaiting review" })
+        .waitFor();
+      assert.deepEqual(deletion.calls, [
+        {
+          method: "DELETE",
+          path: `/api/admin/applications/${id}`,
+          body: {
+            confirmSlug: "skyblockhack",
+            expectedUpdatedAt: deletion.updatedAt,
+          },
+        },
+      ]);
+      assert.equal(await remove.count(), 0);
+      assert.equal(
+        await page.getByLabel("Application URL", { exact: true }).isEnabled(),
+        true,
+      );
+    } catch (error) {
+      await page.screenshot({
+        path: join(shots, "admin-delete-error.png"),
+        fullPage: true,
+      });
+      throw error;
+    } finally {
+      await context.close();
+    }
+  },
+);
+
+test(
+  "admin deletion preserves failed previews, reloads changed targets and clears edited URLs",
+  { timeout: 60000 },
+  async () => {
+    const { context, page, deletion } = await deletionWorkspace();
+    try {
+      await page.goto(base + "/admin");
+      const url = page.getByLabel("Application URL", { exact: true });
+      const find = page.getByRole("button", {
+        name: "Find application",
+        exact: true,
+      });
+      await url.fill(base + "/apps/skyblockhack");
+      await find.click();
+      const confirm = page.getByLabel("Type skyblockhack to confirm deletion");
+      await confirm.fill("skyblockhack");
+      deletion.failure = 409;
+      await page
+        .getByRole("button", { name: "Permanently delete", exact: true })
+        .click();
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "Deletion failed" })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("heading", { name: "Skyblock test application" })
+          .count(),
+        1,
+      );
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Permanently delete", exact: true })
+          .isDisabled(),
+        true,
+      );
+      assert.equal(deletion.calls.length, 1);
+      deletion.failure = 500;
+      deletion.updatedAt = "2026-10-18T02:00:00.654321+00:00";
+      await find.click();
+      await confirm.fill("skyblockhack");
+      await page
+        .getByRole("button", { name: "Permanently delete", exact: true })
+        .click();
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "Deletion failed" })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByText(
+            "Skyblock test application was permanently deleted from Commons.",
+            { exact: true },
+          )
+          .count(),
+        0,
+      );
+      assert.equal(deletion.calls.length, 2);
+      assert.equal(
+        deletion.calls[1].body.expectedUpdatedAt,
+        deletion.updatedAt,
+      );
+      deletion.failure = null;
+      await find.click();
+      await confirm.fill("skyblockhack");
+      await url.fill(base + "/apps/another-application");
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Permanently delete", exact: true })
+          .count(),
+        0,
+      );
+      await url.fill(base + "/apps/skyblockhack");
+      await find.click();
+      await confirm.fill("skyblockhack");
+      await page
+        .getByRole("button", { name: "Permanently delete", exact: true })
+        .focus();
+      await page.keyboard.press("Enter");
+      await page
+        .getByText(
+          "Skyblock test application was permanently deleted from Commons.",
+          { exact: true },
+        )
+        .waitFor();
+      assert.equal(deletion.calls.length, 3);
+    } finally {
+      await context.close();
+    }
+  },
+);

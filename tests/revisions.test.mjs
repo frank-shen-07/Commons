@@ -23,6 +23,7 @@ test("Postgres revision lifecycle, approval transactions, and owner isolation", 
     "202610170001_commons_marketplace.sql",
     "202610170002_publisher_revisions.sql",
     "202610170003_admin_review.sql",
+    "202610180004_admin_delete.sql",
   ])
     await db.exec(
       await readFile(
@@ -403,6 +404,169 @@ test("Postgres revision lifecycle, approval transactions, and owner isolation", 
         (e) => e.code === "42501",
       );
       await db.exec("reset role;");
+    },
+  );
+  const deletionTarget = async () =>
+    (
+      await db.query(
+        "select id, slug, updated_at::text as updated_at from applications where id=$1",
+        [id],
+      )
+    ).rows[0];
+  await t.test(
+    "deletion rejects stale previews and incorrect slug confirmation",
+    async () => {
+      const target = await deletionTarget();
+      for (const args of [
+        [id, target.slug, "2000-01-01T00:00:00Z"],
+        [id, "wrong-slug", target.updated_at],
+      ]) {
+        await assert.rejects(
+          db.query("select * from admin_delete_application($1,$2,$3)", args),
+          (e) => e.code === "40001",
+        );
+      }
+      assert.equal((await app(id)).name, "Tool 2");
+    },
+  );
+  await t.test(
+    "deletion execution is denied to anonymous and ordinary authenticated roles",
+    async () => {
+      const target = await deletionTarget();
+      for (const role of ["anon", "authenticated"]) {
+        await db.exec(`set role ${role}`);
+        try {
+          await assert.rejects(
+            db.query("select * from admin_delete_application($1,$2,$3)", [
+              id,
+              target.slug,
+              target.updated_at,
+            ]),
+            (e) => e.code === "42501",
+          );
+        } finally {
+          await db.exec("reset role");
+        }
+      }
+    },
+  );
+  await t.test(
+    "failed cascade rolls back the entire application deletion",
+    async () => {
+      const target = await deletionTarget();
+      await db.exec(`create function public.test_block_asset_delete() returns trigger language plpgsql as $$ begin raise exception 'Forced child deletion failure'; end $$;
+      create trigger test_block_asset_delete before delete on public.release_assets for each row execute function public.test_block_asset_delete();`);
+      try {
+        await assert.rejects(
+          db.query("select * from admin_delete_application($1,$2,$3)", [
+            id,
+            target.slug,
+            target.updated_at,
+          ]),
+        );
+        assert.equal((await app(id)).name, "Tool 2");
+        assert.ok((await latest(id)).id);
+        assert.equal(
+          (await db.query("select count(*)::int as count from release_assets"))
+            .rows[0].count,
+          1,
+        );
+      } finally {
+        await db.exec(
+          "drop trigger test_block_asset_delete on public.release_assets; drop function public.test_block_asset_delete();",
+        );
+      }
+    },
+  );
+  await t.test(
+    "service-role deletion cascades all application children and preserves unrelated records",
+    async () => {
+      const target = await deletionTarget();
+      await db.query(
+        "insert into application_reports(application_id,reporter_id,reason) values($1,$2,'other')",
+        [id, other],
+      );
+      const versions = (
+        await db.query(
+          "select id from application_versions where application_id=$1",
+          [id],
+        )
+      ).rows.map((row) => row.id);
+      const remainingApps = (
+        await db.query("select id from applications where id<>$1 order by id", [
+          id,
+        ])
+      ).rows;
+      const publishers = (
+        await db.query(
+          "select user_id from developer_profiles order by user_id",
+        )
+      ).rows;
+      const categories = (
+        await db.query("select id from categories order by id")
+      ).rows;
+      await db.exec("set role service_role");
+      let result;
+      try {
+        result = await db.query(
+          "select * from admin_delete_application($1,$2,$3)",
+          [id, target.slug, target.updated_at],
+        );
+      } finally {
+        await db.exec("reset role");
+      }
+      assert.deepEqual(result.rows, [{ id, slug: target.slug }]);
+      for (const table of [
+        "application_revisions",
+        "application_versions",
+        "application_screenshots",
+        "application_categories",
+        "application_reports",
+      ]) {
+        assert.equal(
+          (
+            await db.query(
+              `select count(*)::int as count from ${table} where application_id=$1`,
+              [id],
+            )
+          ).rows[0].count,
+          0,
+          table,
+        );
+      }
+      assert.equal(
+        (
+          await db.query(
+            "select count(*)::int as count from release_assets where version_id=any($1::uuid[])",
+            [versions],
+          )
+        ).rows[0].count,
+        0,
+      );
+      assert.deepEqual(
+        (await db.query("select id from applications order by id")).rows,
+        remainingApps,
+      );
+      assert.deepEqual(
+        (
+          await db.query(
+            "select user_id from developer_profiles order by user_id",
+          )
+        ).rows,
+        publishers,
+      );
+      assert.deepEqual(
+        (await db.query("select id from categories order by id")).rows,
+        categories,
+      );
+      await assert.rejects(
+        db.query("select * from admin_delete_application($1,$2,$3)", [
+          id,
+          target.slug,
+          target.updated_at,
+        ]),
+        (e) => e.code === "P0002",
+      );
     },
   );
 });

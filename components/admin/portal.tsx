@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DeleteApplication } from "./delete-application";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Github, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -456,6 +457,17 @@ export function AdminPortal({ revisionId }: { revisionId?: string }) {
             </article>
           ))}
         </section>
+      )}
+      {!revisionId && !loading && !loadError && (
+        <DeleteApplication
+          onDeleted={(id, slug) => {
+            setQueue((items) =>
+              items.filter((item) => item.application.id !== id),
+            );
+            setSuccesses((items) => items.filter((item) => item.slug !== slug));
+          }}
+          onPermissionError={setLoadError}
+        />
       )}
     </main>
   );

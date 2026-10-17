@@ -207,3 +207,25 @@ export interface AdminApprovalResult {
   slug: string;
   status: "published";
 }
+
+export interface AdminApplicationLookup {
+  id: string;
+  slug: string;
+  name: string;
+  status: ApplicationStatus;
+  repositoryUrl: string;
+  publisher: { githubUsername: string; displayName: string };
+  updatedAt: string;
+}
+export interface AdminApplicationDeletionRequest {
+  confirmSlug: string;
+  expectedUpdatedAt: string;
+}
+export interface AdminApplicationDeletionResult {
+  id: string;
+  slug: string;
+  deleted: true;
+}
+export interface AdminApplicationLookupRequest {
+  url: string;
+}

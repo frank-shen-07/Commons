@@ -255,6 +255,14 @@ export interface Database {
         };
         Returns: Array<{ id: string; slug: string; status: "published" }>;
       };
+      admin_delete_application: {
+        Args: {
+          p_application_id: string;
+          p_confirm_slug: string;
+          p_expected_updated_at: string;
+        };
+        Returns: Array<{ id: string; slug: string }>;
+      };
       approve_application_revision: {
         Args: { p_revision_id: string };
         Returns: undefined;

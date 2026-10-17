@@ -11,7 +11,7 @@ export async function GET() {
     const counts = new Map<string, number>();
     for (const row of links ?? []) counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1);
     return Response.json({ data: (categories ?? []).map((category) => ({ ...category, applicationCount: counts.get(category.id) ?? 0 })) }, {
-      headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
+      headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
     return errorResponse(error);
