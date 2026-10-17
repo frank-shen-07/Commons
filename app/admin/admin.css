@@ -1,0 +1,244 @@
+.admin-portal {
+  max-width: 1200px;
+}
+.admin-portal a {
+  text-underline-offset: 3px;
+}
+.admin-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+.admin-heading h1 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+.admin-heading p {
+  max-width: 65ch;
+}
+.admin-muted,
+.admin-row time {
+  color: #59677a;
+}
+.admin-portal p {
+  line-height: 1.65;
+}
+.admin-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.admin-queue,
+.admin-detail,
+.admin-state {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.admin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.admin-row:last-child {
+  border-bottom: 0;
+}
+.admin-row h2 {
+  font-size: 21px;
+  margin: 8px 0;
+}
+.admin-row p {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.admin-row time {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-kind {
+  display: inline-block;
+  color: #34557c;
+  background: #ebf2ff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.admin-row-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding-top: 12px;
+}
+.admin-row-controls > a {
+  padding-top: 12px;
+  white-space: nowrap;
+}
+.admin-row-action {
+  max-width: 280px;
+}
+.admin-error {
+  color: #a32727;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.admin-success {
+  padding: 16px 20px;
+  background: #eaf5ed;
+  color: #215c35;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.admin-success a {
+  text-decoration: underline;
+}
+.admin-state {
+  padding: 32px;
+}
+.admin-state h2 {
+  font-size: 21px;
+  margin-bottom: 12px;
+}
+.admin-state p {
+  margin-bottom: 20px;
+}
+.admin-review-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.admin-review-bar > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+.admin-detail {
+  padding: 28px;
+}
+.admin-detail section + section {
+  border-top: 1px solid var(--border);
+  margin-top: 32px;
+  padding-top: 28px;
+}
+.admin-detail h2 {
+  font-size: 21px;
+  margin-bottom: 16px;
+}
+.admin-detail h3 {
+  margin: 20px 0 8px;
+}
+.admin-summary {
+  font-weight: 600;
+}
+.admin-prose {
+  white-space: pre-wrap;
+  max-width: 75ch;
+  overflow-wrap: anywhere;
+  margin: 16px 0 24px;
+}
+.admin-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 32px;
+  margin: 28px 0;
+}
+.admin-facts dt {
+  font-size: 12px;
+  color: #59677a;
+  margin-bottom: 6px;
+}
+.admin-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.admin-detail a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+.admin-screenshots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.admin-screenshots img {
+  width: 100%;
+  height: auto;
+  max-height: 450px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--canvas);
+}
+.admin-image-failure {
+  padding: 24px;
+  background: var(--canvas);
+}
+.admin-installers {
+  list-style: none;
+  padding: 0;
+}
+.admin-installers li {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.admin-installers li span {
+  display: block;
+  margin-top: 8px;
+  color: #59677a;
+}
+@media (max-width: 900px) {
+  .admin-row-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+@media (max-width: 700px) {
+  .admin-heading {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .admin-heading h1 {
+    font-size: 28px;
+  }
+  .admin-heading > button {
+    flex-shrink: 0;
+  }
+  .admin-row,
+  .admin-review-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-row,
+  .admin-state,
+  .admin-detail {
+    padding: 20px;
+  }
+  .admin-row-controls {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-top: 0;
+  }
+  .admin-facts,
+  .admin-screenshots {
+    grid-template-columns: 1fr;
+  }
+  .admin-detail a {
+    max-width: 100%;
+    word-break: break-word;
+  }
+}

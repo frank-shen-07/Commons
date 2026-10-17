@@ -8,11 +8,25 @@ export type Json =
   | Json[];
 
 export type ApplicationStatus =
-  "draft" | "pending_review" | "published" | "rejected" | "suspended";
+  | "draft"
+  | "pending_review"
+  | "published"
+  | "rejected"
+  | "suspended";
 export type ReleasePlatform =
-  "windows" | "macos" | "linux" | "web" | "android" | "ios" | "unknown";
+  | "windows"
+  | "macos"
+  | "linux"
+  | "web"
+  | "android"
+  | "ios"
+  | "unknown";
 export type AssetKind =
-  "installer" | "portable" | "web_app" | "source" | "other";
+  | "installer"
+  | "portable"
+  | "web_app"
+  | "source"
+  | "other";
 
 type Table<Row, Insert, Update = Partial<Insert>> = {
   Row: Row;
@@ -31,6 +45,8 @@ export interface Database {
           status: "draft" | "pending_review" | "approved" | "rejected";
           version: number;
           snapshot: Json;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
           created_at: string;
           updated_at: string;
         },
@@ -40,6 +56,8 @@ export interface Database {
           status?: "draft" | "pending_review" | "approved" | "rejected";
           version: number;
           snapshot: Json;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
         }
       >;
       developer_profiles: Table<
@@ -228,6 +246,14 @@ export interface Database {
           p_expected_version: number;
         };
         Returns: undefined;
+      };
+      admin_approve_application_revision: {
+        Args: {
+          p_revision_id: string;
+          p_expected_version: number;
+          p_admin_user_id: string;
+        };
+        Returns: Array<{ id: string; slug: string; status: "published" }>;
       };
       approve_application_revision: {
         Args: { p_revision_id: string };

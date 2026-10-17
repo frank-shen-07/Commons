@@ -142,7 +142,10 @@ export interface PublisherSession {
   githubUsername: string | null;
 }
 export type RevisionStatus =
-  "draft" | "pending_review" | "approved" | "rejected";
+  | "draft"
+  | "pending_review"
+  | "approved"
+  | "rejected";
 export interface PublisherSnapshot {
   input: PublishingRequest;
   repository: import("../../lib/publishing/types").RepositoryImport;
@@ -180,4 +183,27 @@ export interface ResolvedDownload {
   architecture?: string;
   format?: string;
   instructions?: string;
+}
+
+export interface AdminRevisionSummary {
+  id: string;
+  version: number;
+  status: RevisionStatus;
+  name: string;
+  repository: string;
+  submittedAt: string;
+  application: { id: string; slug: string; status: ApplicationStatus };
+  publisher: { id: string | null; githubUsername: string; displayName: string };
+  isUpdate: boolean;
+}
+export interface AdminRevisionDetail extends AdminRevisionSummary {
+  snapshot: PublisherSnapshot;
+}
+export interface AdminApprovalRequest {
+  expectedVersion: number;
+}
+export interface AdminApprovalResult {
+  id: string;
+  slug: string;
+  status: "published";
 }

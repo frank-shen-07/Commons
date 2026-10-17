@@ -22,6 +22,7 @@ test("Postgres revision lifecycle, approval transactions, and owner isolation", 
   for (const name of [
     "202610170001_commons_marketplace.sql",
     "202610170002_publisher_revisions.sql",
+    "202610170003_admin_review.sql",
   ])
     await db.exec(
       await readFile(
@@ -192,15 +193,45 @@ test("Postgres revision lifecycle, approval transactions, and owner isolation", 
       ]);
       assert.equal((await app(id)).status, "draft");
       assert.equal((await latest(id)).version, 3);
+      await assert.rejects(
+        db.query("select * from admin_approve_application_revision($1,$2,$3)", [
+          (await latest(id)).id,
+          2,
+          other,
+        ]),
+        (e) => e.code === "40001",
+      );
       await submit(id, 3);
+      await assert.rejects(
+        db.query("select * from admin_approve_application_revision($1,$2,$3)", [
+          (await latest(id)).id,
+          2,
+          other,
+        ]),
+        (e) => e.code === "40001",
+      );
     },
   );
   await t.test(
     "approval exposes only the selected release asset and all listing fields",
     async () => {
-      await db.query("select approve_application_revision($1)", [
-        (await latest(id)).id,
-      ]);
+      const revision = await latest(id);
+      const result = await db.query(
+        "select * from admin_approve_application_revision($1,$2,$3)",
+        [revision.id, revision.version, other],
+      );
+      assert.equal(result.rows[0].id, id);
+      assert.equal(result.rows[0].status, "published");
+      assert.equal((await latest(id)).reviewed_by, other);
+      assert.ok((await latest(id)).reviewed_at);
+      await assert.rejects(
+        db.query("select * from admin_approve_application_revision($1,$2,$3)", [
+          revision.id,
+          revision.version,
+          other,
+        ]),
+        (e) => e.code === "40001",
+      );
       const current = await app(id);
       assert.equal(current.status, "published");
       assert.equal(current.name, "Tool");
@@ -269,12 +300,69 @@ test("Postgres revision lifecycle, approval transactions, and owner isolation", 
     },
   );
   await t.test(
+    "attribution failure rolls back publication and reviewer fields together",
+    async () => {
+      const revision = await latest(id);
+      await assert.rejects(
+        db.query("select * from admin_approve_application_revision($1,$2,$3)", [
+          revision.id,
+          revision.version,
+          "10000000-0000-4000-8000-000000000099",
+        ]),
+        (e) => e.code === "23503",
+      );
+      assert.equal((await app(id)).name, "Tool");
+      assert.equal((await latest(id)).status, "pending_review");
+      assert.equal((await latest(id)).reviewed_by, null);
+      assert.equal((await latest(id)).reviewed_at, null);
+      assert.deepEqual(
+        (await db.query("select github_asset_id from release_assets")).rows.map(
+          (a) => a.github_asset_id,
+        ),
+        [31],
+      );
+    },
+  );
+  await t.test(
+    "wrapper is unavailable to anonymous and ordinary authenticated users",
+    async () => {
+      for (const role of ["anon", "authenticated"]) {
+        await db.exec(`set role ${role}`);
+        try {
+          await assert.rejects(
+            db.query(
+              "select * from admin_approve_application_revision($1,$2,$3)",
+              ["10000000-0000-4000-8000-000000000099", 6, other],
+            ),
+            (e) => e.code === "42501",
+          );
+        } finally {
+          await db.exec("reset role");
+        }
+      }
+    },
+  );
+  await t.test(
     "approved update replaces the public snapshot and preserves its slug",
     async () => {
       const slug = (await app(id)).slug;
-      await db.query("select approve_application_revision($1)", [
-        (await latest(id)).id,
-      ]);
+      const revision = await latest(id);
+      const result = await db.query(
+        "select * from admin_approve_application_revision($1,$2,$3)",
+        [revision.id, revision.version, other],
+      );
+      assert.equal(result.rows[0].id, id);
+      assert.equal(result.rows[0].status, "published");
+      assert.equal((await latest(id)).reviewed_by, other);
+      assert.ok((await latest(id)).reviewed_at);
+      await assert.rejects(
+        db.query("select * from admin_approve_application_revision($1,$2,$3)", [
+          revision.id,
+          revision.version,
+          other,
+        ]),
+        (e) => e.code === "40001",
+      );
       assert.equal((await app(id)).name, "Tool 2");
       assert.equal((await app(id)).slug, slug);
       assert.deepEqual(
