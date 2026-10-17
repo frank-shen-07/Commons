@@ -26,7 +26,7 @@ The marketplace must use the live database API through `MARKETPLACE_API_URL`. Sa
 
 ## Private API contracts
 
-- `POST /api/admin/applications/lookup` accepts `{url}` and returns `{data: {id, slug, name, status, repositoryUrl, publisher, updatedAt}}`. Only same-origin application URLs are accepted; no supplied URL is fetched. Query strings, fragments, credentials and extra path segments are rejected.
+- `POST /api/admin/applications/lookup` accepts `{url}` and returns `{data: {id, slug, name, status, repositoryUrl, publisher, updatedAt}}`. Application URLs must match the configured public `APP_URL` origin, rather than Next.js's internal listener/proxy hostname; no supplied URL is fetched. Query strings, fragments, credentials and extra path segments are rejected.
 - `DELETE /api/admin/applications/{id}` accepts `{confirmSlug, expectedUpdatedAt}` and returns `{data: {id, slug, deleted: true}}`. The timestamp is preserved as the original database string, including fractional precision.
 - Authorization runs before privileged database access. All responses are `no-store`. Errors use the existing envelope: 401 signed out, 403 non-admin, 422 invalid input, 404 absent application, 409 `STALE_APPLICATION`, and 503 for a missing migration.
 
