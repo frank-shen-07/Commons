@@ -825,3 +825,264 @@ test(
     }
   },
 );
+
+async function adminWorkspace({
+  status = 200,
+  failure = null,
+  update = false,
+} = {}) {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await context.newPage();
+  const revision = {
+    id,
+    version: 4,
+    status: "pending_review",
+    name: "App",
+    repository: "owner/app",
+    submittedAt: "2026-10-17T00:00:00Z",
+    application: {
+      id,
+      slug: "app",
+      status: update ? "published" : "pending_review",
+    },
+    publisher: { id, displayName: "Alex Publisher", githubUsername: "owner" },
+    isUpdate: update,
+    snapshot: { input: initial, repository: repo, categoryId: id },
+  };
+  const state = {
+    approvals: 0,
+    failure,
+    approved: false,
+    bodies: [],
+    queueReads: 0,
+    version: 4,
+  };
+  await context.route("**/api/admin/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const json = (body, code = 200) =>
+      route.fulfill({
+        status: code,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    if (status !== 200)
+      return json(
+        {
+          error: {
+            code: status === 401 ? "UNAUTHENTICATED" : "ADMIN_REQUIRED",
+            message: "Administrator access required.",
+          },
+        },
+        status,
+      );
+    if (path.endsWith("/approve")) {
+      state.approvals++;
+      state.bodies.push(route.request().postDataJSON());
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      if (state.failure)
+        return json(
+          {
+            error: {
+              code:
+                state.failure === 409 ? "STALE_SUBMISSION" : "INTERNAL_ERROR",
+              message:
+                state.failure === 409
+                  ? "Submission changed. Reload and review it again."
+                  : "Could not approve. Reload the submission before trying again.",
+            },
+          },
+          state.failure,
+        );
+      state.approved = true;
+      return json({ data: { id, slug: "app", status: "published" } });
+    }
+    if (path === "/api/admin/revisions") {
+      state.queueReads++;
+      return json({
+        data: state.approved ? [] : [{ ...revision, version: state.version }],
+      });
+    }
+    return json({
+      data: {
+        ...revision,
+        version: state.version,
+        status: state.approved ? "approved" : "pending_review",
+      },
+    });
+  });
+  return { context, page, state };
+}
+
+test(
+  "admin sign-in and permission states expose no submission content",
+  { timeout: 60000 },
+  async () => {
+    for (const status of [401, 403]) {
+      const { context, page } = await adminWorkspace({ status });
+      try {
+        await page.goto(base + "/admin");
+        await page
+          .getByRole("heading", {
+            name:
+              status === 401
+                ? "Sign in to review applications"
+                : "Administrator access required",
+          })
+          .waitFor();
+        assert.equal(
+          await page
+            .getByRole("button", { name: "Approve", exact: true })
+            .count(),
+          0,
+        );
+        if (status === 401)
+          assert.match(
+            await page
+              .getByRole("link", { name: "Sign in with GitHub" })
+              .getAttribute("href"),
+            /next=%2Fadmin/,
+          );
+      } finally {
+        await context.close();
+      }
+    }
+  },
+);
+
+test(
+  "admin queue approval submits the displayed version and only removes confirmed successes",
+  { timeout: 60000 },
+  async () => {
+    const { context, page, state } = await adminWorkspace({ failure: 500 });
+    try {
+      await page.goto(base + "/admin");
+      const button = page.getByRole("button", { name: "Approve", exact: true });
+      await button.focus();
+      await page.keyboard.press("Enter");
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "Could not approve" })
+        .waitFor();
+      assert.equal(
+        await page.getByRole("heading", { name: "App", exact: true }).count(),
+        1,
+      );
+      assert.equal(
+        await page.getByText("App is published.", { exact: false }).count(),
+        0,
+      );
+      assert.equal(state.approvals, 1);
+      state.failure = null;
+      await button.evaluate((element) => {
+        element.click();
+        element.click();
+      });
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Approving…", exact: true })
+          .isDisabled(),
+        true,
+      );
+      await page
+        .getByRole("link", { name: "View public listing", exact: true })
+        .waitFor();
+      await page
+        .getByRole("heading", { name: "No applications awaiting review" })
+        .waitFor();
+      assert.deepEqual(state.bodies, [
+        { expectedVersion: 4 },
+        { expectedVersion: 4 },
+      ]);
+      assert.equal(state.approvals, 2);
+    } finally {
+      await context.close();
+    }
+  },
+);
+
+test(
+  "admin detail, stale recovery and responsive queue layouts",
+  { timeout: 60000 },
+  async () => {
+    const { context, page, state } = await adminWorkspace({
+      failure: 409,
+      update: true,
+    });
+    try {
+      await page.goto(base + `/admin/revisions/${id}`);
+      await page.getByRole("heading", { name: "Submitted listing" }).waitFor();
+      assert.equal(
+        await page.getByRole("link", { name: "App-x64.exe" }).count(),
+        1,
+      );
+      assert.equal(
+        await page
+          .getByRole("link", { name: "View current public listing" })
+          .getAttribute("href"),
+        "/apps/app",
+      );
+      for (const width of [1440, 768, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.screenshot({
+          path: join(shots, `admin-detail-${width}.png`),
+          fullPage: true,
+        });
+        assert.ok(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `detail overflow at ${width}`,
+        );
+      }
+      await page.getByRole("button", { name: "Approve", exact: true }).click();
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "Submission changed" })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Approve", exact: true })
+          .isDisabled(),
+        true,
+      );
+      assert.equal(state.approvals, 1);
+      state.failure = null;
+      state.version = 6;
+      await page.getByRole("button", { name: "Reload", exact: true }).click();
+      await page.getByRole("button", { name: "Approve", exact: true }).click();
+      await page
+        .getByRole("link", { name: "View public listing", exact: true })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Approve", exact: true })
+          .count(),
+        0,
+      );
+      assert.deepEqual(state.bodies, [
+        { expectedVersion: 4 },
+        { expectedVersion: 6 },
+      ]);
+      state.approved = false;
+      await page.goto(base + "/admin");
+      await page.getByRole("heading", { name: "App", exact: true }).waitFor();
+      for (const width of [1440, 768, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await page.screenshot({
+          path: join(shots, `admin-queue-${width}.png`),
+          fullPage: true,
+        });
+        assert.ok(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `queue overflow at ${width}`,
+        );
+      }
+    } finally {
+      await context.close();
+    }
+  },
+);
