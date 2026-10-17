@@ -1,0 +1,10 @@
+import type { ReleaseAsset, Architecture } from "./types";
+export function classifyAsset(asset: { id: number; name: string; size: number; browser_download_url: string; state: string }, releaseId: number): ReleaseAsset {
+ const name = asset.name.toLowerCase();
+ const format = name.match(/\.(exe|msi|dmg|pkg|appimage|deb|rpm)$/)?.[1] ?? "unsupported";
+ const platform = ["exe", "msi"].includes(format) ? "windows" : ["dmg", "pkg"].includes(format) ? "macos" : ["appimage", "deb", "rpm"].includes(format) ? "linux" : null;
+ const architecture: Architecture = /universal/.test(name) ? "universal" : /arm64|aarch64/.test(name) ? "arm64" : /x86_64|x64|amd64|win64/.test(name) ? "x64" : /i[3-6]86|ia32|win32|(?:^|[-_.])x86(?:[-_.]|$)/.test(name) ? "x86" : "unknown";
+ const eligible = platform !== null && asset.state === "uploaded" && asset.size > 0 && !/debug|symbols|checksum|signature|source/.test(name);
+ return { id: asset.id, releaseId, name: asset.name, size: asset.size, url: asset.browser_download_url, platform, architecture, format, eligible, reason: eligible ? architecture === "unknown" ? "Confirm processor compatibility before publishing." : "Supported installer; confirm compatibility." : "Not a supported desktop installer." };
+}
+export function installationInstructions(format: string): string { return ({ exe: "Open the downloaded installer and follow its instructions.", msi: "Open the downloaded installer and follow its instructions.", dmg: "Open the disk image, then follow the app’s instructions to copy it to Applications.", pkg: "Open the downloaded package and follow the installer’s instructions.", appimage: "Allow the downloaded AppImage to run as a program in your file manager, then open it.", deb: "Open the package using your Linux distribution’s software installer. Check that your distribution supports .deb packages.", rpm: "Open the package using your Linux distribution’s software installer. Check that your distribution supports .rpm packages." } as Record<string, string>)[format] ?? "Follow the publisher’s installation instructions."; }

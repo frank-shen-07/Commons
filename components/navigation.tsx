@@ -49,7 +49,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ? "Browse apps"
         : pathname.startsWith("/apps/")
           ? "App details"
-          : "About Commons";
+          : pathname.startsWith("/developer")
+            ? "Developer workspace"
+            : "About Commons";
   return (
     <>
       <aside className="sidebar">
@@ -96,7 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Shared with everyone.
             </p>
           </div>
-          <Link href="/about#developers" className="sidebar-publish">
+          <Link href="/developer" className="sidebar-publish">
             <Code2 size={16} />
             For developers
             <ArrowUpRight size={13} />
@@ -128,7 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Search size={16} />
             </button>
           </form>
-          <Link className="publish-link" href="/about#developers">
+          <Link className="publish-link" href="/developer">
             Publish your app
             <ArrowUpRight size={14} />
           </Link>
@@ -147,7 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Grid2X2 size={20} />
           Browse
         </Link>
-        <Link href="/about#developers">
+        <Link href="/developer">
           <Code2 size={20} />
           Publish
         </Link>

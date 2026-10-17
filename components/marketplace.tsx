@@ -121,6 +121,7 @@ export function AppCard({
       {variant === "preview" && app.screenshots.length > 0 && (
         <div className="app-preview">
           <Image
+            unoptimized
             src={app.screenshots[0]}
             alt={`${app.name} application preview`}
             width={700}
@@ -216,6 +217,7 @@ export function FeaturedAppCard({
         {app.screenshots[0] ? (
           <Image
             priority
+            unoptimized
             src={app.screenshots[0]}
             alt={`${app.name} official application screenshot`}
             width={1000}
