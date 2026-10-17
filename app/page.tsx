@@ -125,7 +125,7 @@ export default async function Home() {
           <h2>Your next users are out there.</h2>
           <p>Help them discover what you’ve been building.</p>
         </div>
-        <Link href="/about#developers">
+        <Link href="/developer">
           Publish your app
           <ArrowRight size={15} />
         </Link>

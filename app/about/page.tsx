@@ -26,12 +26,12 @@ export default function About() {
       <section id="developers" className="detail-section">
         <h2>Your work deserves to be discovered.</h2>
         <p>
-          The developer publishing portal is being built by our team. Publishing
-          isn’t available in this preview yet.
+          Prepare a listing with our developer portal: import a public GitHub
+          repository, choose release assets, and preview your app. Public publishing
+          will be available when account services are connected.
         </p>
         <p>
-          Our goal is simple: help you share your application with people who
-          will love using it.
+          <Link href="/developer">Open your developer workspace →</Link>
         </p>
       </section>
     </main>

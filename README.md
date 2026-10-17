@@ -39,16 +39,26 @@ Additional presentation fields are `websiteUrl`, `color`, and `features`. Option
 
 Search, filters, and sorting currently operate on the fetched catalog in the browser. Paginated server search requires an agreed contract. No popularity or release-date sorting is offered without meaningful source data. The Discover collection uses editorial ordering, not a fabricated trending ranking. Unknown versions, dates, and release notes are not invented. Only OBS Studio and LibreOffice currently have screenshots; other apps have a missing-image state.
 
-## Member 3: distribution and publishing integration
+## Member 3: developer portal and distribution
 
-Until the download contract is agreed, app actions open an explicit GitHub Releases page when supplied, otherwise the official developer website. Users select the installer there. These actions do not claim to complete a download or installation.
+The portal is available at `/developer`. Import a **public** GitHub repository, configure its description, screenshots and stable release assets, preview the listing, and save a draft in browser storage. Drafts can be reopened, deleted, or exported as JSON. No credentials or new packages are required.
 
-An optional adapter is implemented in `components/app-details.tsx`. Once confirmed, set `DISTRIBUTION_DOWNLOAD_URL` to a **public browser-accessible** endpoint template containing `{slug}`. The client adds a `platform` query parameter and expects `{ "platform": "windows", "url": "https://...", "label": "..." }` (`DownloadOption`). The URL must contain no secrets. Cross-origin endpoints must allow the marketplace origin. Failed lookups, missing URLs, mismatched platforms, timeouts, and unsupported devices are handled. Device selection is manual.
+Per the current integration scope, OAuth, ownership verification, database persistence, public publication, and marketplace ingestion are deferred to Member 2. The Publish step explicitly explains this and cannot publish. Public import does not establish publisher ownership. Existing marketplace sample data remains separate from local drafts.
 
-Installer selection, architecture detection, security checks, release ingestion, and persistence remain Member 3’s responsibility. Publishing links currently go to `/about#developers`, which clearly states the portal is unavailable in this preview. Replace them with the agreed portal route when ready; reuse the shell, tokens, form fields, and Button component. No GitHub OAuth or duplicate publishing backend is implemented.
+`GET /api/developer/import?repository=owner/repo` reads public metadata, licence, README and up to 20 recent releases using GitHub's unauthenticated REST API. Drafts and prereleases are excluded. This API is subject to GitHub's unauthenticated rate limits.
+
+`GET /api/developer/download?repository=owner/repo&releaseId=123&assetId=456&platform=windows` re-fetches the release, checks asset membership, format and platform, and redirects only to that repository's HTTPS GitHub release download URL. This route supports draft-preview downloads; it does not claim publisher verification or software safety. Desktop installers supported: EXE, MSI, DMG, PKG, AppImage, DEB, RPM. Generic ZIP/TAR archives are excluded. Users explicitly choose a platform and named installer; unknown architectures remain labelled unknown.
+
+Implementation and future backend contracts: [docs/member-3-contracts.md](docs/member-3-contracts.md). Run the dependency-free distribution checks on Node 24 with `node --test tests/publishing.test.mjs`.
+
+The existing marketplace `DISTRIBUTION_DOWNLOAD_URL` adapter remains reserved for a future published-listing resolver. Do not point it at the draft download redirect: the marketplace expects a JSON `DownloadOption`, while the preview endpoint returns a redirect.
 
 ## Validation and limits
 
 Production build, TypeScript, and ESLint pass. Playwright covers global/developer search, category/platform/license filters, reset, sorting, grid/list views, keyboard search, screenshot next/previous, unsupported devices, GitHub Releases fallback, missing screenshots/apps, legacy route, sticky shell, image loading, and horizontal overflow at 1440, 1024, 768, and 390 pixels. Captures and a QA record are under `.impeccable/review/`.
 
 Live catalog/distribution APIs and the publishing portal remain integration tasks. Loading and retry components are implemented; no live-backend outage simulation was performed. The full dependency audit retains development-only findings through ESLint’s glob/micromatch/braces chain; the prior production audit reported no vulnerabilities.
+
+### Member 3 validation in this workspace
+
+Focused distribution tests and TS/TSX syntax checks passed. Full Next.js build, typecheck, lint, and browser/live GitHub journey verification were unavailable: dependency installation failed because the npm registry could not be resolved. The validation statements above describe the pre-existing frontend, not the new portal.

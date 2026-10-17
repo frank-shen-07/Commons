@@ -154,7 +154,8 @@ export function ScreenshotGallery({ app }: { app: MarketplaceApp }) {
   return (
     <section aria-label="App screenshots" className="screenshot-gallery">
       <Image
-        width={1200}
+        unoptimized
+            width={1200}
         height={750}
         src={app.screenshots[index]}
         alt={`${app.name} screenshot ${index + 1}`}
