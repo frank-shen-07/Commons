@@ -33,11 +33,12 @@ export async function GET(
     if (assetId && !apiUuidSchema.safeParse(assetId).success)
       throw new ApiError("Choose a valid installer.", 422, "INVALID_ASSET");
     const supabase = await createSupabaseServerClient();
+    // `*` rather than naming distribution_selection: databases without the
+    // publisher-revisions migration lack that column and fall back to legacy
+    // (all stored installers) instead of failing.
     const { data: app, error } = await supabase
       .from("applications")
-      .select(
-        "id, web_url, repository_owner, repository_name, distribution_selection",
-      )
+      .select("*")
       .eq("slug", (await params).slug)
       .eq("status", "published")
       .maybeSingle();
