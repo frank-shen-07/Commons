@@ -19,6 +19,7 @@ import {
   Palette,
   Play,
   Search,
+  Star,
   ShieldCheck,
   Wrench,
 } from "lucide-react";
@@ -56,8 +57,8 @@ export function SearchBar({
       <Search size={20} />
       <input
         name="q"
-        aria-label="Search apps"
-        placeholder="Find an app for your everyday"
+        aria-label="Search apps and public GitHub repositories"
+        placeholder="Search apps and public GitHub repositories"
         defaultValue={defaultValue}
       />
       <button type="submit" aria-label="Find apps">
@@ -112,12 +113,14 @@ export function PlatformBadge({ app }: { app: MarketplaceApp }) {
 export function AppCard({
   app,
   variant = "standard",
+  href,
 }: {
   app: MarketplaceApp;
   variant?: "standard" | "compact" | "preview";
+  href?: string;
 }) {
   return (
-    <Link href={`/apps/${app.slug}`} className={`app-card app-card-${variant}`}>
+    <Link href={href ?? `/apps/${app.slug}`} className={`app-card app-card-${variant}`}>
       {variant === "preview" && app.screenshots.length > 0 && (
         <div className="app-preview">
           <Image
@@ -134,7 +137,11 @@ export function AppCard({
         <div className="app-card-copy">
           <h3>{app.name}</h3>
           <p>{app.summary}</p>
-          <span className="app-category">{app.category}</span>
+          <span className="app-category">
+            {app.category}
+            {app.repositoryStars !== undefined &&
+              ` · ${app.repositoryStars.toLocaleString()} stars`}
+          </span>
         </div>
         <span className="get-pill">
           View
@@ -142,8 +149,17 @@ export function AppCard({
         </span>
       </div>
       <div className="app-card-bottom">
-        <PlatformBadge app={app} />
-        <span>Open source</span>
+        {app.repositoryStars !== undefined ? (
+          <span className="platforms">
+            <Star size={12} />
+            {app.repositoryStars.toLocaleString()} stars
+          </span>
+        ) : (
+          <PlatformBadge app={app} />
+        )}
+        <span>
+          {app.repositoryStars !== undefined ? "Public GitHub repo" : "Open source"}
+        </span>
       </div>
     </Link>
   );
@@ -151,15 +167,25 @@ export function AppCard({
 export function AppGrid({
   apps,
   variant = "standard",
+  getHref,
 }: {
   apps: MarketplaceApp[];
   variant?: "standard" | "compact" | "preview";
+  getHref?: (app: MarketplaceApp) => string;
 }) {
   return (
     <div className={`app-grid app-grid-${variant}`}>
-      {apps.map((app) => (
-        <AppCard app={app} variant={variant} key={app.id} />
-      ))}
+      {apps.map((app) => {
+        const href = getHref?.(app);
+        return (
+          <AppCard
+            app={app}
+            variant={variant}
+            href={href}
+            key={href ?? app.id}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -266,12 +292,24 @@ export function CategoryCard({ name }: { name: string }) {
     </Link>
   );
 }
-export function EmptyState({ reset }: { reset: () => void }) {
+export function EmptyState({
+  reset,
+  searchQuery = "",
+}: {
+  reset: () => void;
+  searchQuery?: string;
+}) {
   return (
     <div className="empty-state">
       <Search size={32} />
-      <h2>No apps found this time</h2>
-      <p>Try a different search or clear your filters.</p>
+      <h2>
+        {searchQuery ? "No Commons apps match this search" : "No apps found this time"}
+      </h2>
+      <p>
+        {searchQuery
+          ? "You can also search public GitHub repositories below."
+          : "Try a different search or clear your filters."}
+      </p>
       <Button variant="secondary" onClick={reset}>
         Clear search & filters
       </Button>

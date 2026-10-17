@@ -122,8 +122,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Search size={17} />
             <input
               name="q"
-              aria-label="Search applications"
-              placeholder="Search apps, categories, developers"
+              aria-label="Search apps and public GitHub repositories"
+              placeholder="Search apps and public GitHub repositories"
             />
             <kbd>⌘ K</kbd>
             <button type="submit" aria-label="Search">
