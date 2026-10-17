@@ -40,8 +40,11 @@ export interface MarketplaceApp {
   release?: AppRelease;
   releasesUrl?: string;
 }
-// Proposed distribution response; agree this with Member 3 before enabling it.
+// Published download response (inside the API data envelope).
 export interface DownloadOption {
+  architecture?: string;
+  format?: string;
+  instructions?: string;
   platform: Platform;
   url: string;
   label: string;

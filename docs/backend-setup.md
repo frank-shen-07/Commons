@@ -20,7 +20,7 @@ The GitHub OAuth client ID and secret are configured only in Supabase Auth → A
 
 ## Database migration
 
-The schema is defined in `supabase/migrations/202610170001_commons_marketplace.sql`. It is additive and seeds the marketplace categories. Apply it to a fresh project through Supabase SQL Editor, or with the Supabase CLI after linking:
+The schema is defined in the ordered migrations under `supabase/migrations/`, including `202610170002_publisher_revisions.sql` for private draft/review snapshots and transactional approval. It is additive and seeds the marketplace categories. Apply it to a fresh project through Supabase SQL Editor, or with the Supabase CLI after linking:
 
 ```sh
 npx supabase login
@@ -77,30 +77,26 @@ Set `MARKETPLACE_API_URL=http://localhost:3000/api` for the existing server-side
 
 The UI's current fixture catalog remains the fallback when `MARKETPLACE_API_URL` is unset. Do not treat fixtures as database data. The real browse response is `{data, pagination}`; details are `{data}`. `docs/api-contracts.md` is the field-level contract.
 
-### Member 3: repository verification and publishing APIs
+### Member 3: connected publishing portal
 
-1. Redirect the user to `/api/auth/github`; after callback, cookies represent the server-verified Supabase session.
-2. Call `GET /api/developer/repositories/verify?repository=owner/repo`. Import preview at `/api/developer/import` is public-only and is not authorization evidence.
-3. Send the validated listing fields and chosen GitHub release/asset IDs to `POST /api/apps`. The API re-fetches every trusted repository/release/asset value.
-4. Use `PATCH /api/apps/{id}` for permitted draft fields. Never send publisher IDs or publication status.
-5. Confirm GitHub identifies an SPDX licence and all required listing data is complete.
-6. Call `POST /api/apps/{id}/publish`; success means `pending_review`, not publicly published.
-6. A trusted moderator approves separately. Only then will the listing appear in public search.
+The portal now uses the authenticated APIs. Sign in through `/api/auth/github?next=/developer`, verify repository permissions, save a complete draft, and submit for review. Dashboard list/detail reads, optimistic saves, review withdrawal and published updates use the new private revision endpoints. See [member-3-contracts.md](./member-3-contracts.md).
 
-The developer portal currently saves browser-local drafts; it does not yet invoke these authenticated APIs. That UI integration remains separate from this backend. Do not pass GitHub provider tokens through browser code, draft JSON, or URL query parameters.
+Apply both migrations first. A missing revision schema produces an actionable `503 MIGRATION_REQUIRED`; the portal must not fall back to claiming a local draft is saved on the server. Browser recovery drafts remain separate and require explicit migration to the signed-in account.
 
 ## Moderation, deployment, and limits
 
 There is intentionally no public admin endpoint or seeded admin role. Review and publication changes must be made by a trusted database operator or a future separately authenticated moderation service. For a manual review in Supabase SQL Editor, inspect the row and its repository/releases first; publish with a narrowly targeted statement:
 
 ```sql
-update public.applications
-set status = 'published', published_at = now()
-where id = '<reviewed-application-uuid>'
-  and status = 'pending_review';
+select id, application_id, version, snapshot
+from public.application_revisions
+where status = 'pending_review';
+
+-- Run only after reviewing that revision's repository, licence and selected files.
+select public.approve_application_revision('<reviewed-revision-uuid>');
 ```
 
-The database trigger and RLS block ordinary authenticated users from promoting or featuring listings. Do not grant the service role to a browser or ordinary developer.
+Approval applies public metadata, screenshots and selected installers in one transaction. A published update leaves its previous public version untouched until approval. Do not publish by directly setting `applications.status`; doing so skips materializing the reviewed snapshot. The database trigger, function grants and RLS block ordinary authenticated users from approving, promoting or featuring listings. Do not grant the service role to a browser or ordinary developer.
 
 Vercel must provide the two public Supabase configuration values and the service-role key as encrypted server-side environment variables. Configure exact production redirect allow-list entries in Supabase. Migrations are applied separately; deploy does not automatically modify the production database.
 

@@ -12,7 +12,7 @@ All endpoints are served by the Next.js App Router under `/api`. JSON success bo
 }
 ```
 
-Error details appear only for request validation. Responses do not include stack traces, OAuth tokens, service keys, or private moderation notes. Authenticated responses use `Cache-Control: no-store`.
+Validation errors include field issues; installer ambiguity includes public installer choices. Responses do not include stack traces, OAuth tokens, service keys, or private moderation notes. Authenticated responses use `Cache-Control: no-store`.
 
 ## Public marketplace
 
@@ -26,14 +26,14 @@ Public; only `published` rows are returned.
 
 Query parameters:
 
-| Name | Values | Default |
-| --- | --- | --- |
-| `q` | name, summary, description, and publisher name/username search, up to 100 characters | none |
-| `category` | category name or slug | none |
-| `platform` | `windows`, `macos`, `linux`, `web`, `android`, `ios` | none |
-| `sort` | `featured`, `recent`, `updated`, `name` | `featured` |
-| `page` | positive integer | `1` |
-| `limit` | integer from `1` to `50` | `20` |
+| Name       | Values                                                                               | Default    |
+| ---------- | ------------------------------------------------------------------------------------ | ---------- |
+| `q`        | name, summary, description, and publisher name/username search, up to 100 characters | none       |
+| `category` | category name or slug                                                                | none       |
+| `platform` | `windows`, `macos`, `linux`, `web`, `android`, `ios`                                 | none       |
+| `sort`     | `featured`, `recent`, `updated`, `name`                                              | `featured` |
+| `page`     | positive integer                                                                     | `1`        |
+| `limit`    | integer from `1` to `50`                                                             | `20`       |
 
 Response: `{ "data": ApplicationSummary[], "pagination": { "page", "limit", "total", "totalPages" } }`. Sort ties are deterministically ordered by application id. Relevance is not fabricated; `featured` prioritizes the moderator-set flag then publication recency.
 
@@ -45,9 +45,11 @@ Public, published listings only. Returns `{ "data": ApplicationDetail }` includi
 
 Public. Returns `{ "data": Category[] }` with counts based on publicly readable application-category links.
 
-### `GET /api/apps/{slug}/download?platform=windows[&architecture=x64]`
+### `GET /api/apps/{slug}/download?platform=windows[&architecture=x64][&assetId=<uuid>]`
 
-Public, published listings only. Resolves a validated stored asset and returns `{ "data": { "platform", "url", "label" } }`; it never proxies binaries. A web listing returns its canonical HTTPS web URL. If multiple assets exist, or the only candidate has unknown architecture, callers must present a choice and retry with an architecture. Invalid platform is `422`, unavailable assets are `404`, and ambiguity is `409 ASSET_SELECTION_REQUIRED`.
+Public, published listings only. Resolves the approved release/asset selection and returns `{data: {platform,url,label,architecture?,format?,instructions?}}`. Web apps return an approved HTTPS launch URL. Invalid platform/architecture/asset ID is `422`; missing apps/assets are `404`.
+
+When several candidates remain (even sharing an architecture), or architecture is unknown without an explicit asset choice, returns `409 ASSET_SELECTION_REQUIRED` with `error.details: [{assetId,fileName,architecture,sizeBytes,format}]`. Retry with an exact stored asset ID. The UI requires acknowledgement for unknown architecture. IDs outside the selected published release/platform cannot resolve.
 
 ### `POST /api/apps/{id}/reports`
 
@@ -79,39 +81,23 @@ Requires a GitHub OAuth session with `public_repo` scope and write/maintain/admi
 
 Existing unauthenticated portal preview. It imports public GitHub metadata only and does **not** verify publisher ownership. Use `/api/developer/repositories/verify` before persistence or publication.
 
-### `POST /api/apps`
+### Developer listings and revisions
 
-Requires authentication, a provider token, repository write access, a matching GitHub identity, and the server-only Supabase service-role key. The server re-fetches the repository, releases, and assets; client repository IDs, URLs, publisher IDs, ownership, and status are not trusted.
+Authenticated `GET /api/developer/apps` returns owned listing summaries; `GET /api/developer/apps/{id}` returns a `DeveloperListing` with editable snapshot, application status, revision status, revision ID and current version. Other publishers receive `404`. Responses never include provider tokens or private moderator notes.
 
-Request (screenshots can be HTTPS URL strings or `{ "url": "https://...", "alt": "..." }` objects):
+`POST /api/apps` accepts the existing `PublishingRequest` fields: repository, name, summary, description, category, screenshots, optional icon/website/web URLs, selected GitHub release ID, and selected asset IDs/platforms/architectures. The server verifies repository access, reconstructs canonical metadata and validates the chosen assets. Success is `201` with a `DeveloperListing`. Duplicate repositories are `409`.
 
-```json
-{
-  "repository": "owner/repo",
-  "name": "Example",
-  "summary": "A short description",
-  "description": "What the application does",
-  "category": "Utilities",
-  "screenshots": ["https://images.example/screenshot.png"],
-  "iconUrl": "https://images.example/icon.png",
-  "websiteUrl": "https://example.com",
-  "webUrl": "",
-  "releaseId": 12345,
-  "assets": [{ "id": 67890, "platform": "windows", "architecture": "x64" }]
-}
-```
+`PUT /api/developer/apps/{id}/draft` accepts `{input: PublishingRequest, expectedVersion: number}`. A stale version returns `409 STALE_DRAFT`. Complete listing input and the exact selection are saved atomically. A published app keeps its public fields while its draft revision changes. Pending submissions are locked.
 
-All listing fields are validated. The server derives publisher identity, GitHub repository ID, licence, release versions, canonical release URLs, and asset data. Asset IDs must occur in the selected stable release and match the server's conservative classifier. Success is `201` with a persisted `draft`. Duplicate repository or slug is `409`.
+`POST /api/developer/apps/{id}/submit` accepts `{expectedVersion: number}`. The server rechecks repository control, licence and the exact selected stable release/installers (or web URL), then returns `202` and the updated `DeveloperListing`. `revisionStatus` becomes `pending_review`; the application becomes `pending_review` only for a first publication. A published app remains published during update review.
 
-The `201` response contains `{ "data": { "id", "slug", "status": "draft", "name", "summary", "description", "iconUrl", "repositoryUrl", "category", "screenshots", "createdAt", "updatedAt" } }`.
+`POST /api/developer/apps/{id}/draft/reopen` accepts `{expectedVersion: number}` and explicitly returns a pending revision to draft. This also withdraws an initial submission from pending review, while a published application remains available.
 
-### `PATCH /api/apps/{id}`
+Existing `PATCH /api/apps/{id}` still accepts permitted metadata fields and preserves omitted fields, but delegates to revision persistence. Legacy `POST /api/apps/{id}/publish` delegates to the same submission service. New clients should use the versioned private endpoints to protect against concurrent edits.
 
-Requires authentication and ownership. Accepts only `name`, `summary`, `description`, `category`, `screenshots`, `iconUrl`, `websiteUrl`, and `webUrl`. It cannot set publisher, repository identity, status, featured flag, publication date, releases, or download URLs. A pending-review edit first returns the listing to draft so it must be resubmitted; submitted child release data is locked until then.
+Only a trusted moderator/database operator may run `approve_application_revision(revisionId)`. This transaction applies the reviewed snapshot and selected distribution data. A submitted revision is not a published listing; ordinary users cannot promote or approve it.
 
-### `POST /api/apps/{id}/publish`
-
-Requires authentication, ownership, current repository write access, a GitHub-identified SPDX licence, and a server-revalidated stable release with a supported installer or HTTPS web URL. A missing or `NOASSERTION` licence prevents submission. The trusted server refreshes stored release data and locks the listing while submitting it as `pending_review` (`202`); it does **not** make the listing public. Listings appear publicly only after a trusted moderator changes the status to `published`.
+See [member-3-contracts.md](./member-3-contracts.md) for the full state flow, compatibility notes, and rollout requirements.
 
 ## Authorization and status codes
 

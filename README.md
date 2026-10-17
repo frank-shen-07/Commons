@@ -38,27 +38,24 @@ The backend is implemented with Supabase Auth/Postgres, versioned migrations, RL
 
 Filtering, sorting and search parameters plus response/error shapes are documented in [docs/api-contracts.md](./docs/api-contracts.md). Local consumer search still filters the fetched first page; use API query parameters and pagination for a complete large catalog.
 
-## Member 3: developer portal and distribution
+## Member 3: developer publishing and distribution
 
-The portal is available at `/developer`. It currently imports a public GitHub repository and saves editable drafts in browser storage; it does not yet invoke the authenticated backend APIs. The backend contracts are ready for portal integration, but the UI still marks local drafts as unpublished.
+The portal at `/developer` now connects to the authenticated backend. Sign in with GitHub, verify a public repository you maintain, configure a listing and selected stable installers, save it to your account, preview it, and **submit for review**. Approved listings appear in the marketplace. Published applications can prepare updates without changing the current public version.
 
-`GET /api/developer/import?repository=owner/repo` remains an unauthenticated preview and does not establish ownership. For persistence, sign in through `/api/auth/github`, verify using `GET /api/developer/repositories/verify?repository=owner/repo`, submit a listing to `POST /api/apps`, edit it via `PATCH /api/apps/{id}`, then submit it via `POST /api/apps/{id}/publish`. The publish operation submits to moderation (`pending_review`), not public visibility.
+Apply **both** migrations before using the account workflow, including `supabase/migrations/202610170002_publisher_revisions.sql`. The latter adds private review snapshots, optimistic version checks, and transactional save/submission/approval functions. A read-only check of the configured project during implementation reported the new revision table missing; no hosted schema was modified.
 
-`GET /api/developer/download?repository=owner/repo&releaseId=123&assetId=456&platform=windows` re-fetches the release, checks asset membership, format and platform, and redirects only to that repository's HTTPS GitHub release download URL. This route supports draft-preview downloads; it does not claim publisher verification or software safety. Desktop installers supported: EXE, MSI, DMG, PKG, AppImage, DEB, RPM. Generic ZIP/TAR archives are excluded. Users explicitly choose a platform and named installer; unknown architectures remain labelled unknown.
+Local previews remain available without sign-in. Browser drafts are recovery copies, not public listings. Importing a local draft into an account is explicit; successful server saves remove the recovery copy. Account-bound recovery drafts are not shown to other accounts. All ownership, licence and release checks are repeated on the server.
 
-Implementation and future backend contracts: [docs/member-3-contracts.md](docs/member-3-contracts.md). Run the dependency-free distribution checks on Node 24 with `node --test tests/publishing.test.mjs`.
+Live app pages use `/api/apps/{slug}/download` automatically. The resolver returns a JSON `data` envelope and exact installer choices when ambiguous. Users choose their operating system and, when needed, the specific installer; unknown processor compatibility requires confirmation. Direct downloads remain on canonical GitHub release URLs. Supported desktop formats: EXE, MSI, DMG, PKG, AppImage, DEB and RPM. Web apps have a separate “Open web app” action. No installation or software-safety claim is made.
 
-The published-listing resolver returns JSON compatible with `DownloadOption`; the preview download endpoint remains a separate redirect flow. See [docs/backend-setup.md](./docs/backend-setup.md) and [docs/api-contracts.md](./docs/api-contracts.md) for OAuth, setup, request fields, errors, and moderation setup.
+The public `/api/developer/import` and preview `/api/developer/download` remain available for local previews; they are not proof of repository ownership. The protected publishing flow uses `/api/developer/repositories/verify` and persisted revisions instead.
+
+Contracts and review operations: [docs/member-3-contracts.md](docs/member-3-contracts.md), [docs/api-contracts.md](docs/api-contracts.md), and [docs/backend-setup.md](docs/backend-setup.md).
 
 ## Validation and limits
 
-Backend validation run in this workspace:
+- `npm test`: unit/distribution checks plus embedded PostgreSQL migration, revision, rollback, and RLS tests.
+- `npm run typecheck`, `npm run lint`, `npm run build`: static and production checks.
+- `npx playwright install chromium` followed by `npm run test:browser`: isolated browser checks with API fixtures. The runner copies source to a temporary directory, so it does not stop an existing development server. Port 3103 must be available. `E2E_BASE_URL` can target an already running fixture-mode server instead; `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select an existing Chromium binary.
 
-- `npm test` — 13 tests passed (Node 24).
-- `npm run typecheck`, `npm run lint`, and `npm run build` — passed.
-- `npm audit --omit=dev` — no production dependency vulnerabilities found.
-- Full `npm audit` still reports 5 high-severity findings in the existing development-only ESLint → fast-glob → micromatch → braces chain. npm's suggested fix is a breaking downgrade of `eslint-config-next`; it was not applied.
-
-No Supabase credentials, local Postgres client, or Docker are configured here, so the migration was not applied and RLS/OAuth/GitHub live integration tests were not run. See [docs/backend-setup.md](./docs/backend-setup.md) for remaining setup and [docs/api-contracts.md](./docs/api-contracts.md) for endpoint guarantees. The developer portal UI still needs to be wired to the new authenticated APIs.
-
-The earlier frontend browser QA captures and notes under `.impeccable/review/` are pre-existing checks and were not rerun as part of the backend work.
+Browser fixtures exercise UI state and request contracts; PostgreSQL tests exercise actual SQL functions and policies. Neither substitutes for a real GitHub OAuth → hosted database → moderator approval → download check. That final hosted journey requires the new migration and a signed-in publisher with a real supported release. See [docs/member-3-validation.md](docs/member-3-validation.md).
