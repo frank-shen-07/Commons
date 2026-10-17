@@ -1319,6 +1319,9 @@ input::placeholder {
 .detail-layout > aside {
   min-width: 0;
 }
+.detail-layout > aside {
+  align-self: start;
+}
 .screenshot-gallery {
   border-radius: 12px;
   overflow: hidden;
@@ -1349,18 +1352,16 @@ input::placeholder {
   background: var(--surface);
 }
 .download-panel {
-  position: sticky;
-  top: 96px;
-  padding: 23px;
+  padding: 28px 26px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 .download-panel h2 {
-  font-size: 22px;
-  letter-spacing: -0.025em;
+  font-size: 15px;
+  letter-spacing: -0.01em;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 26px;
 }
 .download-panel p {
   font-size: 11px;
@@ -1371,32 +1372,33 @@ input::placeholder {
 .download-panel label {
   font-size: 12px;
   display: block;
-  margin-bottom: 9px;
+  margin-bottom: 10px;
   color: var(--muted);
 }
 .download-panel select {
   width: 100%;
-  padding: 11px;
+  padding: 0 12px;
   border: 1px solid var(--border-strong);
   border-radius: 7px;
   background: var(--field);
   color: var(--ink);
-  font-size: 11px;
-  margin-bottom: 15px;
-  min-height: 42px;
+  font-size: 13px;
+  margin-bottom: 22px;
+  min-height: 40px;
 }
 .download-panel .button {
   width: 100%;
-  font-size: 12px;
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
 }
-.download-panel .download-guidance {
-  font-size: 12px;
-  margin: 15px 0 0;
-}
+.download-panel .download-guidance,
 .download-panel p[role] {
   font-size: 12px;
-  margin-top: 15px;
-  margin-bottom: 0;
+  line-height: 1.6;
+  margin: 22px 0 0;
+  text-align: center;
 }
 .error-text {
   color: var(--danger) !important;
@@ -1676,9 +1678,6 @@ input::placeholder {
     grid-template-columns: minmax(0, 1fr) 250px;
     gap: 22px;
   }
-  .download-panel {
-    padding: 19px;
-  }
   .screenshot-gallery > img {
     height: 290px;
   }
@@ -1820,9 +1819,6 @@ input::placeholder {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
-  }
-  .download-panel {
-    position: static;
   }
   .screenshot-gallery > img {
     height: 330px;
@@ -2297,16 +2293,7 @@ input::placeholder {
   .detail-layout > aside {
     display: block;
   }
-  .download-panel {
-    padding: 22px;
-  }
-  .download-panel h2 {
-    font-size: 21px;
-  }
   .download-panel p {
-    font-size: 11px;
-  }
-  .download-panel .button {
     font-size: 11px;
   }
   .screenshot-gallery {

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { fixtureApps } from "./fixtures";
 import { categories, platforms, type MarketplaceApp, type Platform } from "./types";
 import type { Application, Category, PaginatedResponse } from "@/src/types/api";
@@ -63,7 +64,8 @@ export async function getCategories(): Promise<string[]> {
   const result = await request<{ data: Category[] }>("/categories");
   return result.data.map((category) => category.name);
 }
-export async function getApp(slug: string): Promise<MarketplaceApp | null> {
+// cache() dedupes the lookup within one request (generateMetadata + page).
+export const getApp = cache(async function getApp(slug: string): Promise<MarketplaceApp | null> {
   if (!apiBase) return fixtureApps.find((app) => app.slug === slug) ?? null;
   const response = await fetch(`${apiBase}/apps/${encodeURIComponent(slug)}`, {
     cache: "no-store",
@@ -74,4 +76,4 @@ export async function getApp(slug: string): Promise<MarketplaceApp | null> {
     throw new Error("We couldn’t load this app. Please try again.");
   const result = await response.json() as { data: Application };
   return normalizeApp(result.data);
-}
+});
