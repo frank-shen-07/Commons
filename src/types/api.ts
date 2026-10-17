@@ -1,4 +1,8 @@
-import type { AssetKind, ApplicationStatus, ReleasePlatform } from "./database.types";
+import type {
+  AssetKind,
+  ApplicationStatus,
+  ReleasePlatform,
+} from "./database.types";
 
 export type Platform = ReleasePlatform;
 
@@ -62,7 +66,11 @@ export interface Application {
   screenshots: string[];
   screenshotDetails?: Array<{ url: string; alt: string; order: number }>;
   developerName: string;
-  developer: { username: string; name: string; avatarUrl: string | null } | null;
+  developer: {
+    username: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
   versions: ApplicationVersion[];
   latestVersion: string | null;
   platforms: Platform[];
@@ -92,7 +100,12 @@ export type ApplicationDetail = Application;
 
 export interface PaginatedResponse<T> {
   data: T[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ApiErrorResponse {
@@ -110,35 +123,61 @@ export type PublishingRequest = {
   websiteUrl?: string;
   webUrl?: string;
   releaseId?: number | null;
-  assets?: Array<{ id: number; platform: "windows" | "macos" | "linux" | "web"; architecture: string }>;
+  assets?: Array<{
+    id: number;
+    platform: "windows" | "macos" | "linux" | "web";
+    architecture: string;
+  }>;
 };
 
-export interface RepositoryVerification {
-  repository: {
-    id: number;
-    fullName: string;
-    name: string;
-    description: string;
-    url: string;
-    owner: string;
-    license: string | null;
+export type RepositoryVerification =
+  import("../../lib/publishing/types").RepositoryImport & {
+    repository: import("../../lib/publishing/types").RepositoryImport;
   };
-  releases: Array<{
-    id: number;
-    version: string;
-    name: string | null;
-    notes: string;
-    url: string;
-    publishedAt: string | null;
-    assets: Array<{
-      id: number;
-      name: string;
-      platform: "windows" | "macos" | "linux" | null;
-      architecture: string;
-      eligible: boolean;
-      reason: string;
-    }>;
-  }>;
-}
 
 export type { ApplicationStatus, AssetKind, ReleasePlatform };
+
+export interface PublisherSession {
+  id: string;
+  githubUsername: string | null;
+}
+export type RevisionStatus =
+  "draft" | "pending_review" | "approved" | "rejected";
+export interface PublisherSnapshot {
+  input: PublishingRequest;
+  repository: import("../../lib/publishing/types").RepositoryImport;
+  categoryId: string;
+}
+export interface DeveloperListingSummary {
+  id: string;
+  slug: string;
+  name: string;
+  repository: string;
+  status: ApplicationStatus;
+  revisionStatus: RevisionStatus | null;
+  version: number;
+  updatedAt: string;
+}
+export interface DeveloperListing
+  extends DeveloperListingSummary, PublishingRequest {
+  createdAt: string;
+  repositoryUrl: string;
+  license: string | null;
+  revisionId: string | null;
+  snapshot: PublisherSnapshot;
+}
+export interface DownloadChoice {
+  assetId: string;
+  fileName: string;
+  architecture: string;
+  sizeBytes: number | null;
+  format: string;
+}
+export interface ResolvedDownload {
+  platform: Platform;
+  url: string;
+  label: string;
+  architecture?: string;
+  format?: string;
+  instructions?: string;
+}

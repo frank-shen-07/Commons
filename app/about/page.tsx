@@ -27,8 +27,8 @@ export default function About() {
         <h2>Your work deserves to be discovered.</h2>
         <p>
           Prepare a listing with our developer portal: import a public GitHub
-          repository, choose release assets, and preview your app. Public publishing
-          will be available when account services are connected.
+          repository you maintain, choose release assets, and submit your app
+          for review. Approved listings appear in the marketplace.
         </p>
         <p>
           <Link href="/developer">Open your developer workspace →</Link>

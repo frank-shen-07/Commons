@@ -123,7 +123,10 @@ export default async function DetailPage({
         <aside>
           <DownloadButton
             app={app}
-            endpoint={process.env.DISTRIBUTION_DOWNLOAD_URL}
+            endpoint={
+              process.env.DISTRIBUTION_DOWNLOAD_URL ??
+              (usingFixtures ? undefined : "/api/apps/{slug}/download")
+            }
           />
           <div className="community-note">
             <Heart size={20} />

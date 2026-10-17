@@ -51,19 +51,54 @@ async function githubRequest<T>(path: string, token: string): Promise<T> {
     });
   } catch (error) {
     if (error instanceof Error && error.name === "TimeoutError") {
-      throw new ApiError("GitHub did not respond in time. Try again later.", 504, "GITHUB_TIMEOUT");
+      throw new ApiError(
+        "GitHub did not respond in time. Try again later.",
+        504,
+        "GITHUB_TIMEOUT",
+      );
     }
-    throw new ApiError("GitHub could not be reached. Try again later.", 502, "GITHUB_UNAVAILABLE");
+    throw new ApiError(
+      "GitHub could not be reached. Try again later.",
+      502,
+      "GITHUB_UNAVAILABLE",
+    );
   }
-  if (response.status === 429 || (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0")) {
-    throw new ApiError("GitHub's request limit was reached. Try again later.", 429, "GITHUB_LIMIT");
+  if (
+    response.status === 429 ||
+    (response.status === 403 &&
+      response.headers.get("x-ratelimit-remaining") === "0")
+  ) {
+    throw new ApiError(
+      "GitHub's request limit was reached. Try again later.",
+      429,
+      "GITHUB_LIMIT",
+    );
   }
   if (response.status === 403) {
-    throw new ApiError("Your connected GitHub account does not have repository access.", 403, "GITHUB_FORBIDDEN");
+    throw new ApiError(
+      "Your connected GitHub account does not have repository access.",
+      403,
+      "GITHUB_FORBIDDEN",
+    );
   }
-  if (response.status === 404) throw new ApiError("GitHub repository or release was not found.", 404, "GITHUB_NOT_FOUND");
-  if (response.status === 401) throw new ApiError("GitHub authorization expired. Connect GitHub again.", 401, "GITHUB_UNAUTHORIZED");
-  if (!response.ok) throw new ApiError("GitHub could not verify this repository.", 502, "GITHUB_FAILURE");
+  if (response.status === 404)
+    throw new ApiError(
+      "GitHub repository or release was not found.",
+      404,
+      "GITHUB_NOT_FOUND",
+    );
+  if (response.status === 401)
+    throw new ApiError(
+      "GitHub authorization expired. Connect GitHub again.",
+      401,
+      "GITHUB_UNAUTHORIZED",
+    );
+  if (!response.ok)
+    throw new ApiError(
+      "GitHub could not verify this repository.",
+      502,
+      "GITHUB_FAILURE",
+    );
   return response.json() as Promise<T>;
 }
 
@@ -72,14 +107,56 @@ export async function verifyGithubRepository(value: string, token: string) {
   try {
     canonical = repositoryName(value);
   } catch {
-    throw new ApiError("Enter a valid github.com owner/repository URL.", 422, "INVALID_REPOSITORY");
+    throw new ApiError(
+      "Enter a valid github.com owner/repository URL.",
+      422,
+      "INVALID_REPOSITORY",
+    );
   }
-  const repository = await githubRequest<GithubRepository>(`/repos/${canonical}`, token);
+  const repository = await githubRequest<GithubRepository>(
+    `/repos/${canonical}`,
+    token,
+  );
   if (repository.private || repository.archived) {
-    throw new ApiError("Only public, active repositories can be published.", 422, "REPOSITORY_UNAVAILABLE");
+    throw new ApiError(
+      "Only public, active repositories can be published.",
+      422,
+      "REPOSITORY_UNAVAILABLE",
+    );
   }
-  if (!repository.permissions?.push && !repository.permissions?.maintain && !repository.permissions?.admin) {
-    throw new ApiError("Your connected GitHub account does not have repository write access.", 403, "REPOSITORY_FORBIDDEN");
+  if (
+    !repository.permissions?.push &&
+    !repository.permissions?.maintain &&
+    !repository.permissions?.admin
+  ) {
+    throw new ApiError(
+      "Your connected GitHub account does not have repository write access.",
+      403,
+      "REPOSITORY_FORBIDDEN",
+    );
   }
-  return { repository, releases: await githubRequest<GithubRelease[]>(`/repos/${canonical}/releases?per_page=20`, token) };
+  return {
+    repository,
+    releases: await githubRequest<GithubRelease[]>(
+      `/repos/${canonical}/releases?per_page=20`,
+      token,
+    ),
+  };
+}
+
+export async function readGithubReadme(
+  fullName: string,
+  token: string,
+): Promise<string> {
+  try {
+    const result = await githubRequest<{ content: string; encoding: string }>(
+      `/repos/${fullName}/readme`,
+      token,
+    );
+    return result.encoding === "base64"
+      ? Buffer.from(result.content, "base64").toString("utf8").slice(0, 30000)
+      : "";
+  } catch {
+    return "";
+  } // README is optional; verification failures are not swallowed.
 }

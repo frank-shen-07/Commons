@@ -1,60 +1,54 @@
 # Member 3 integration handoff
 
-## Current scope
+## Implemented journey
 
-The developer portal UI remains a local-draft workflow. The backend now provides Supabase OAuth/session, repository verification, persistent listing APIs, moderation submission, and published download resolution. The portal UI has not yet been connected to those protected APIs. Public metadata import and release previews continue to use real GitHub API requests. Drafts are stored only on the current browser/device, under `commons.publisher.drafts.v1`.
+`/developer` displays account listings and separate local recovery drafts. `/developer/publish` imports a public repository, configures selected assets, previews and submits. `/developer/apps/{id}/edit` loads an account listing; `?local=1` opens a browser-local recovery draft with that ID. Local imports into an account require an explicit save.
 
-## Owned files
+Sign-in, identity, provider tokens, repository permissions, and persistence reuse Member 2's server services. No browser Supabase client or provider-token storage was added. The public metadata import remains preview-only.
 
-- `app/developer/**`: routes, scoped styling.
-- `components/developer/**`: dashboard and wizard.
-- `lib/publishing/**`: draft, repository, release and asset contracts/services.
-- `app/api/developer/import/route.ts`: public repository import.
-- `app/api/developer/download/route.ts`: validated preview download redirect.
-- `tests/publishing.test.mjs`: dependency-free distribution checks.
+## Private API contracts
 
-Small shared changes connect developer links and allow external screenshot previews without server-side image proxying. Existing consumer catalog APIs are unchanged.
+Successes use `{data: ...}`; failures use the existing structured error envelope. All private responses are `no-store`.
 
-## Contracts implemented now
+| Method | Route                                 | Behaviour                                                                                   |
+| ------ | ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| GET    | /api/developer/apps                   | Current publisher's listing summaries, application/revision status and version              |
+| GET    | /api/developer/apps/{id}              | Owned listing, editable snapshot and current version; other owners receive 404              |
+| POST   | /api/apps                             | Create a saved draft from `PublishingRequest`; server re-verifies repository and asset data |
+| PUT    | /api/developer/apps/{id}/draft        | Save `{input: PublishingRequest, expectedVersion: number}` transactionally                  |
+| POST   | /api/developer/apps/{id}/submit       | Submit `{expectedVersion: number}` after fresh GitHub/licence/selection checks; returns 202 |
+| POST   | /api/developer/apps/{id}/draft/reopen | Explicitly withdraw pending review into a draft using `{expectedVersion}`                   |
 
-Shared models: `lib/publishing/types.ts`.
+A `DeveloperListing` includes stable application ID/slug, status, revisionStatus, revisionId, version, updatedAt, and snapshot `{input, repository, categoryId}`. Root listing fields remain available for compatibility. Schema types live in `src/types/api.ts`; runtime validation remains server-side Zod. The portal handles stale versions with 409 `STALE_DRAFT`, keeps unsaved values, and offers export/reload.
 
-### GET /api/developer/import?repository=owner/repo
+`GET /api/developer/repositories/verify` returns full imported metadata and classified stable releases under `data`, with the nested `repository` property retained for previous callers. Optional README failures do not invalidate successful repository verification.
 
-Returns `RepositoryImport`: repository ID, canonical full name, description, owner, avatar, licence, README text, stable releases and classified assets. Accepts an owner/repo or HTTPS GitHub repository URL. Public, non-archived repositories only. Reads the first 20 release records; no pagination yet. Source archives are never installer options. README is optional, displayed as plain text; metadata and release failures surface as errors.
+Existing `PATCH /api/apps/{id}` now saves a revision using the same service and retains omitted fields. A pending submission must first be explicitly reopened. It cannot change identity, slug, moderation state, or external distribution URLs. Legacy `POST /api/apps/{id}/publish` delegates to revision submission; callers should use the versioned submit route for conflict protection.
 
-### GET /api/developer/download
+## Persistence and review
 
-Required query parameters: `repository`, `releaseId`, `assetId`, `platform`. Re-fetches a stable release from GitHub, verifies asset membership and supported format/platform, then returns HTTP 302 to its canonical GitHub release asset URL. Arbitrary destinations are never accepted. Failures return JSON `{error: string}` with a non-2xx status. This is a preview download, not a published listing endpoint.
+Apply the additive `202610170002_publisher_revisions.sql` migration after the original migration. Private revisions hold validated input and server-fetched repository/release snapshots. Only one draft/pending revision is active per app; prior approved/rejected revisions remain in history. Owner RLS permits reads, while only trusted server functions can save or change review state. The functions enforce expected versions under a database row lock.
 
-## Member 2 integration APIs
+New app status: draft → pending_review → published. Published updates change only the private revision until approval; their public row stays published. A pending revision can return to draft. Rejected revisions can be replaced with a new draft. Suspended applications cannot be edited or submitted through these operations.
 
-Use [docs/api-contracts.md](./api-contracts.md) for full schemas and error formats and [docs/backend-setup.md](./backend-setup.md) for OAuth/project configuration.
+Approval atomically applies the submitted metadata, category, screenshots, selected release, and selected installers; unselected files never become public downloads. The public version data represents the approved distribution; older full snapshots remain in revision history. Existing published rows retain their stored distribution until a reviewed update. Legacy draft selections cannot be reconstructed, so their next submission requires explicit reconfirmation.
 
-1. Sign in through `GET /api/auth/github`; the callback establishes an HttpOnly Supabase session.
-2. Verify repository access with `GET /api/developer/repositories/verify?repository=owner/repo`. The public import endpoint is preview-only and does not prove ownership.
-3. Submit a listing through `POST /api/apps`. The backend re-fetches repository/releases/assets, validates all input, and persists a draft. Do not send a publisher ID or token.
-4. Update allowed listing fields through `PATCH /api/apps/{id}`. Updating a pending-review listing returns it to draft so it must be re-submitted.
-5. Submit through `POST /api/apps/{id}/publish`. This verifies GitHub access and current releases again, refreshes stored metadata, and returns `pending_review`; it does not make the app public.
+There is no public moderator endpoint. A trusted operator inspects `application_revisions.snapshot` and runs:
 
-The portal currently stores its form only in browser storage and does not call these routes. Connecting its UI requires an authenticated session flow and a server-held cookie; JSON draft exports remain untrusted input, not proof of ownership.
+```sql
+select public.approve_application_revision('<reviewed-revision-uuid>');
+```
 
-## Member 1 integration work
+Only the database operator or service role may execute approval. Directly changing `applications.status` does not apply a revision and must not be used for new submissions.
 
-The portal links are connected to `/developer`. The consumer adapter in `lib/api.ts` unwraps the public API and maps it to `MarketplaceApp` from `lib/types.ts`. `GET /api/apps/{slug}/download?platform=...` returns `{platform, url, label}` for published asset records. If multiple candidates or unknown architecture prevent an unambiguous result, the API returns `409 ASSET_SELECTION_REQUIRED`; callers must let the user choose instead of silently selecting.
+## Marketplace downloads
 
-Do not connect the current draft redirect to `DISTRIBUTION_DOWNLOAD_URL`: it returns HTTP 302 rather than the JSON response expected by the consumer adapter.
+`GET /api/apps/{slug}/download?platform=windows[&architecture=x64][&assetId=<stored-asset-uuid>]` returns `{data: {platform,url,label,architecture,format,instructions}}` for one approved installer. Web apps return their approved HTTPS URL. New listings restrict resolution to the stored approved release/asset selection. Legacy records resolve only their newest stored release, consistently with public compatibility metadata.
 
-## Validation and remaining checks
+Ambiguity, including multiple installers sharing one architecture, returns 409 `ASSET_SELECTION_REQUIRED` with `error.details: [{assetId,fileName,architecture,sizeBytes,format}]`. The UI asks for an exact choice. An unknown architecture never auto-selects; the UI requires acknowledgement. An explicit asset ID must still match the published application, platform and optional architecture.
 
-`node --test tests/publishing.test.mjs` (Node 24): classification, archives/debug exclusions, URL validation, official asset destinations, installation guidance.
+Local live app pages default to the same-origin resolver. External `DISTRIBUTION_DOWNLOAD_URL` overrides must implement this envelope and selection contract. Sample listings retain their official release/developer fallback. Local-preview redirects remain separate and must not be substituted for the JSON resolver.
 
-`npm test`, `npm run typecheck`, `npm run lint`, and `npm run build` pass in this workspace. Live OAuth, database/RLS integration tests, and the protected GitHub repository journey still require configured Supabase/GitHub credentials. In a browser, the portal's local-draft flow can be checked independently; UI-to-API publication wiring remains outstanding.
+## Validation and hosted setup
 
-A real publication journey remains contingent on configuring Supabase/GitHub and connecting the portal UI. The UI explicitly marks local drafts unpublished. No installed-app state is recorded.
-
-## Reference documentation
-
-- [GitHub release asset API](https://docs.github.com/en/rest/releases/assets)
-- [Next.js route handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route)
-- [GitHub OAuth flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps)
+See `docs/member-3-validation.md` for coverage and limits. The configured project did not contain `application_revisions` when probed; migrations were tested locally but not applied to a hosted project. Hosted OAuth/provider-token behavior and the final real release journey still need verification after setup.

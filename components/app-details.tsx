@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/types";
 import { Button } from "./ui/button";
 import Image from "next/image";
+import type { DownloadChoice } from "@/src/types/api";
 export function DownloadButton({
   app,
   endpoint,
@@ -24,13 +25,20 @@ export function DownloadButton({
   app: MarketplaceApp;
   endpoint?: string;
 }) {
-  const [platform, setPlatform] = useState<Platform | "">(""),
-    [busy, setBusy] = useState(false),
+  const [platform, setPlatform] = useState<Platform | "">("");
+  const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
+  const [choices, setChoices] = useState<DownloadChoice[]>([]),
+    [assetId, setAssetId] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false),
+    [instructions, setInstructions] = useState("");
+  const sequence = useRef(0);
   const supported = platform && app.platforms.includes(platform);
+  const selected = choices.find((choice) => choice.assetId === assetId);
   async function download() {
     if (!platform || !endpoint) return;
+    const requestId = ++sequence.current;
     setBusy(true);
     setError("");
     setMessage("");
@@ -40,50 +48,76 @@ export function DownloadButton({
         window.location.origin,
       );
       url.searchParams.set("platform", platform);
+      if (assetId) url.searchParams.set("assetId", assetId);
       const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const body = await response.json();
+      if (requestId !== sequence.current) return;
+      if (
+        response.status === 409 &&
+        body.error?.code === "ASSET_SELECTION_REQUIRED" &&
+        Array.isArray(body.error.details)
+      ) {
+        setChoices(body.error.details);
+        setAssetId("");
+        setAcknowledged(false);
+        setMessage("Choose the installer that matches your device.");
+        return;
+      }
       if (!response.ok)
         throw new Error(
-          "A download isn’t available right now. Please try again or visit the developer website.",
+          body.error?.message ??
+            "This download is unavailable. Try again or visit the official releases.",
         );
-      const option: DownloadOption = await response.json();
-      if (typeof option.url !== "string" || !option.url.trim())
-        throw new Error(
-          "The download link is missing. Please use the official release page.",
-        );
-      const destination = new URL(option.url, window.location.origin);
+      const option: DownloadOption = body.data;
       if (
-        !["https:", "http:"].includes(destination.protocol) ||
+        !option ||
+        typeof option.url !== "string" ||
         option.platform !== platform
       )
-        throw new Error(
-          "We couldn’t find a matching download for your device.",
-        );
-      window.location.assign(destination.href);
+        throw new Error("A matching download link was not returned.");
+      const destination = new URL(option.url);
+      if (
+        destination.protocol !== "https:" ||
+        destination.username ||
+        destination.password
+      )
+        throw new Error("The download destination is invalid.");
+      setInstructions(option.instructions ?? "");
       setMessage(
-        "Your download was requested. Open the downloaded file and follow the installer’s instructions.",
+        platform === "web"
+          ? "Opening the web application…"
+          : "Your download was requested. Open the downloaded file and follow the installation instructions.",
       );
+      window.location.assign(destination.href);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Something went wrong. Please try again.",
-      );
+      if (requestId === sequence.current)
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Something went wrong. Please try again.",
+        );
     } finally {
-      setBusy(false);
+      if (requestId === sequence.current) setBusy(false);
     }
   }
   return (
     <section className="download-panel" aria-label="Get this application">
       <h2>Get the app</h2>
-      <p>Free to download. Yours to explore.</p>
+      <p>Choose a download for your device.</p>
       <label htmlFor="download-platform">Choose your device</label>
       <select
         id="download-platform"
         value={platform}
         onChange={(e) => {
+          sequence.current++;
           setPlatform(e.target.value as Platform);
+          setBusy(false);
           setMessage("");
           setError("");
+          setChoices([]);
+          setAssetId("");
+          setAcknowledged(false);
+          setInstructions("");
         }}
       >
         <option value="">Select your device</option>
@@ -99,42 +133,90 @@ export function DownloadButton({
           Choose another device.
         </p>
       )}
+      {choices.length > 0 && (
+        <>
+          <label htmlFor="download-asset">Choose an installer</label>
+          <select
+            id="download-asset"
+            value={assetId}
+            onChange={(e) => {
+              setAssetId(e.target.value);
+              setAcknowledged(false);
+              setInstructions("");
+            }}
+          >
+            <option value="">Select an installer</option>
+            {choices.map((choice) => (
+              <option key={choice.assetId} value={choice.assetId}>
+                {choice.fileName} · {choice.architecture}
+                {choice.sizeBytes
+                  ? ` · ${(choice.sizeBytes / 1048576).toFixed(1)} MB`
+                  : ""}
+              </option>
+            ))}
+          </select>
+          {selected?.architecture === "unknown" && (
+            <label className="download-acknowledgement">
+              <input
+                type="checkbox"
+                checked={acknowledged}
+                onChange={(e) => setAcknowledged(e.target.checked)}
+              />
+              The processor compatibility is unknown. I have checked the
+              publisher’s release instructions.
+            </label>
+          )}
+        </>
+      )}
       {endpoint ? (
-        <Button onClick={download} disabled={!supported || busy}>
+        <Button
+          onClick={() => void download()}
+          disabled={
+            !supported ||
+            busy ||
+            (choices.length > 0 &&
+              (!assetId ||
+                (selected?.architecture === "unknown" && !acknowledged)))
+          }
+        >
           <ArrowDownToLine size={17} />
           {busy
             ? "Finding your download…"
-            : `Download${platform ? ` for ${platformLabels[platform]}` : ""}`}
+            : platform === "web"
+              ? "Open web app"
+              : `Download${platform ? ` for ${platformLabels[platform]}` : ""}`}
         </Button>
       ) : (
         <Button asChild>
           <a
-            href={app.releasesUrl ?? app.websiteUrl}
+            href={app.releasesUrl || app.websiteUrl || app.repositoryUrl}
             target="_blank"
             rel="noreferrer"
           >
             {app.releasesUrl
               ? "Choose a release on GitHub"
-              : "Get it from the developer"}{" "}
-            <ArrowUpRight size={17} />
+              : "Get it from the developer"}
+            <ArrowUpRight size={14} />
           </a>
         </Button>
       )}
       {!endpoint && (
         <p className="download-guidance">
-          {app.releasesUrl
-            ? "Choose a compatible installer from the project’s GitHub releases."
-            : "Downloads currently open the official website."}{" "}
-          Choose the installer for your device there, then open the downloaded
-          file to begin.
+          Choose a compatible installer on the official release page, then open
+          the downloaded file to begin.
         </p>
       )}
+      {instructions && <p className="download-guidance">{instructions}</p>}
       {message && <p role="status">{message}</p>}
       {error && (
         <p role="alert" className="error-text">
           {error}
         </p>
       )}
+      <p className="download-guidance">
+        Software is provided by its publisher. A download does not mean the app
+        is installed or security verified.
+      </p>
     </section>
   );
 }
@@ -155,7 +237,7 @@ export function ScreenshotGallery({ app }: { app: MarketplaceApp }) {
     <section aria-label="App screenshots" className="screenshot-gallery">
       <Image
         unoptimized
-            width={1200}
+        width={1200}
         height={750}
         src={app.screenshots[index]}
         alt={`${app.name} screenshot ${index + 1}`}

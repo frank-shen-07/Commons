@@ -2229,3 +2229,16 @@ input::placeholder {
     transition: none !important;
   }
 }
+.download-acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.download-acknowledgement input {
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}

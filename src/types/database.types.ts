@@ -8,20 +8,11 @@ export type Json =
   | Json[];
 
 export type ApplicationStatus =
-  | "draft"
-  | "pending_review"
-  | "published"
-  | "rejected"
-  | "suspended";
+  "draft" | "pending_review" | "published" | "rejected" | "suspended";
 export type ReleasePlatform =
-  | "windows"
-  | "macos"
-  | "linux"
-  | "web"
-  | "android"
-  | "ios"
-  | "unknown";
-export type AssetKind = "installer" | "portable" | "web_app" | "source" | "other";
+  "windows" | "macos" | "linux" | "web" | "android" | "ios" | "unknown";
+export type AssetKind =
+  "installer" | "portable" | "web_app" | "source" | "other";
 
 type Table<Row, Insert, Update = Partial<Insert>> = {
   Row: Row;
@@ -33,38 +24,216 @@ type Table<Row, Insert, Update = Partial<Insert>> = {
 export interface Database {
   public: {
     Tables: {
+      application_revisions: Table<
+        {
+          id: string;
+          application_id: string;
+          status: "draft" | "pending_review" | "approved" | "rejected";
+          version: number;
+          snapshot: Json;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          application_id: string;
+          status?: "draft" | "pending_review" | "approved" | "rejected";
+          version: number;
+          snapshot: Json;
+        }
+      >;
       developer_profiles: Table<
-        { user_id: string; github_username: string; display_name: string; avatar_url: string | null; biography: string | null; created_at: string; updated_at: string },
-        { user_id: string; github_username: string; display_name?: string; avatar_url?: string | null; biography?: string | null }
+        {
+          user_id: string;
+          github_username: string;
+          display_name: string;
+          avatar_url: string | null;
+          biography: string | null;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          user_id: string;
+          github_username: string;
+          display_name?: string;
+          avatar_url?: string | null;
+          biography?: string | null;
+        }
       >;
       categories: Table<
         { id: string; name: string; slug: string; created_at: string },
         { id?: string; name: string; slug: string; created_at?: string }
       >;
       applications: Table<
-        { id: string; publisher_id: string | null; name: string; slug: string; summary: string; description: string; icon_url: string | null; repository_url: string; repository_owner: string; repository_name: string; github_repository_id: number; license: string | null; website_url: string | null; web_url: string | null; status: ApplicationStatus; featured: boolean; created_at: string; updated_at: string; published_at: string | null },
-        { id?: string; publisher_id?: string | null; name: string; slug: string; summary: string; description: string; icon_url?: string | null; repository_url: string; repository_owner: string; repository_name: string; github_repository_id: number; license?: string | null; website_url?: string | null; web_url?: string | null; status?: ApplicationStatus; featured?: boolean; published_at?: string | null }
+        {
+          id: string;
+          publisher_id: string | null;
+          name: string;
+          slug: string;
+          summary: string;
+          description: string;
+          icon_url: string | null;
+          repository_url: string;
+          repository_owner: string;
+          repository_name: string;
+          github_repository_id: number;
+          license: string | null;
+          website_url: string | null;
+          web_url: string | null;
+          status: ApplicationStatus;
+          featured: boolean;
+          created_at: string;
+          updated_at: string;
+          published_at: string | null;
+          distribution_selection: Json | null;
+        },
+        {
+          id?: string;
+          publisher_id?: string | null;
+          name: string;
+          slug: string;
+          summary: string;
+          description: string;
+          icon_url?: string | null;
+          repository_url: string;
+          repository_owner: string;
+          repository_name: string;
+          github_repository_id: number;
+          license?: string | null;
+          website_url?: string | null;
+          web_url?: string | null;
+          status?: ApplicationStatus;
+          featured?: boolean;
+          published_at?: string | null;
+          distribution_selection?: Json | null;
+        }
       >;
-      application_categories: Table<{ application_id: string; category_id: string }, { application_id: string; category_id: string }>;
+      application_categories: Table<
+        { application_id: string; category_id: string },
+        { application_id: string; category_id: string }
+      >;
       application_versions: Table<
-        { id: string; application_id: string; version: string; git_tag: string; release_name: string | null; release_notes: string; github_release_url: string; released_at: string | null; prerelease: boolean; github_release_id: number; created_at: string },
-        { id?: string; application_id: string; version: string; git_tag: string; release_name?: string | null; release_notes?: string; github_release_url: string; released_at?: string | null; prerelease?: boolean; github_release_id: number }
+        {
+          id: string;
+          application_id: string;
+          version: string;
+          git_tag: string;
+          release_name: string | null;
+          release_notes: string;
+          github_release_url: string;
+          released_at: string | null;
+          prerelease: boolean;
+          github_release_id: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          application_id: string;
+          version: string;
+          git_tag: string;
+          release_name?: string | null;
+          release_notes?: string;
+          github_release_url: string;
+          released_at?: string | null;
+          prerelease?: boolean;
+          github_release_id: number;
+        }
       >;
       release_assets: Table<
-        { id: string; version_id: string; github_asset_id: number; file_name: string; download_url: string; mime_type: string | null; file_size_bytes: number | null; platform: ReleasePlatform; architecture: string; kind: AssetKind; created_at: string },
-        { id?: string; version_id: string; github_asset_id: number; file_name: string; download_url: string; mime_type?: string | null; file_size_bytes?: number | null; platform?: ReleasePlatform; architecture?: string; kind?: AssetKind }
+        {
+          id: string;
+          version_id: string;
+          github_asset_id: number;
+          file_name: string;
+          download_url: string;
+          mime_type: string | null;
+          file_size_bytes: number | null;
+          platform: ReleasePlatform;
+          architecture: string;
+          kind: AssetKind;
+          created_at: string;
+        },
+        {
+          id?: string;
+          version_id: string;
+          github_asset_id: number;
+          file_name: string;
+          download_url: string;
+          mime_type?: string | null;
+          file_size_bytes?: number | null;
+          platform?: ReleasePlatform;
+          architecture?: string;
+          kind?: AssetKind;
+        }
       >;
       application_screenshots: Table<
-        { id: string; application_id: string; image_url: string; alt_text: string; display_order: number; created_at: string },
-        { id?: string; application_id: string; image_url: string; alt_text?: string; display_order?: number }
+        {
+          id: string;
+          application_id: string;
+          image_url: string;
+          alt_text: string;
+          display_order: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          application_id: string;
+          image_url: string;
+          alt_text?: string;
+          display_order?: number;
+        }
       >;
       application_reports: Table<
-        { id: string; application_id: string; reporter_id: string | null; reason: "malware" | "impersonation" | "license" | "broken" | "other"; details: string | null; created_at: string },
-        { id?: string; application_id: string; reporter_id: string | null; reason: "malware" | "impersonation" | "license" | "broken" | "other"; details?: string | null }
+        {
+          id: string;
+          application_id: string;
+          reporter_id: string | null;
+          reason: "malware" | "impersonation" | "license" | "broken" | "other";
+          details: string | null;
+          created_at: string;
+        },
+        {
+          id?: string;
+          application_id: string;
+          reporter_id: string | null;
+          reason: "malware" | "impersonation" | "license" | "broken" | "other";
+          details?: string | null;
+        }
       >;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      publisher_save_draft: {
+        Args: {
+          p_owner: string;
+          p_application_id: string | null;
+          p_expected_version: number;
+          p_snapshot: Json;
+        };
+        Returns: string;
+      };
+      publisher_submit_revision: {
+        Args: {
+          p_owner: string;
+          p_application_id: string;
+          p_expected_version: number;
+          p_snapshot: Json;
+        };
+        Returns: undefined;
+      };
+      publisher_reopen_revision: {
+        Args: {
+          p_owner: string;
+          p_application_id: string;
+          p_expected_version: number;
+        };
+        Returns: undefined;
+      };
+      approve_application_revision: {
+        Args: { p_revision_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: {
       application_status: ApplicationStatus;
       release_platform: ReleasePlatform;
