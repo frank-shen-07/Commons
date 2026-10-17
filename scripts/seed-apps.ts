@@ -59,8 +59,8 @@ const apps: SeedApp[] = [
     websiteUrl: "https://www.libreoffice.org/download/download-libreoffice/",
     iconUrl: `${raw}/LibreOffice/core/master/sysui/desktop/icons/hicolor/256x256/apps/main.png`,
     screenshots: [
-      { url: "https://www.libreoffice.org/media/screenshot_writer.png", alt: "LibreOffice Writer editing a document" },
-      { url: "https://www.libreoffice.org/media/screenshot_calc.png", alt: "LibreOffice Calc with a spreadsheet and chart" },
+      { url: "https://commons-r2u1.onrender.com/images/libreoffice-writer.png", alt: "LibreOffice Writer editing a document" },
+      { url: "https://commons-r2u1.onrender.com/images/libreoffice-calc.png", alt: "LibreOffice Calc with a spreadsheet and chart" },
     ],
     featured: true,
   },

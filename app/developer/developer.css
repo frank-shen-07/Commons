@@ -101,7 +101,7 @@
   padding: 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: white;
+  background: var(--surface);
 }
 .publisher-draft h3 {
   margin: 12px 0 4px;
@@ -162,7 +162,7 @@
 }
 .publisher-steps [aria-current="step"] span {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
 }
 .publisher-panel {
   padding: 32px;
@@ -190,7 +190,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   padding: 12px 14px;
-  background: white;
+  background: var(--field);
   color: var(--ink);
   font: inherit;
   margin-top: 8px;

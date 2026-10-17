@@ -28,6 +28,7 @@
   --canvas: #f7f8fa;
   --surface: #fff;
   --surface-hover: #fcfdff;
+  --field: #fff;
   --surface-sunken: #edf1f7;
   --sidebar-bg: #f0f2f6;
   --fill-hover: #e6eaf1;
@@ -79,6 +80,7 @@
     --canvas: #0e1014;
     --surface: #16191f;
     --surface-hover: #1a1e25;
+    --field: #262b35;
     --surface-sunken: #1c2028;
     --sidebar-bg: #121419;
     --fill-hover: #232831;
@@ -124,6 +126,7 @@
   --canvas: #0e1014;
   --surface: #16191f;
   --surface-hover: #1a1e25;
+  --field: #262b35;
   --surface-sunken: #1c2028;
   --sidebar-bg: #121419;
   --fill-hover: #232831;
@@ -1058,10 +1061,10 @@ input::placeholder {
 }
 .filter-toolbar select,
 .results-heading select {
-  border: 1px solid var(--border);
-  background: white;
+  border: 1px solid var(--border-strong);
+  background: var(--field);
   border-radius: 6px;
-  color: var(--muted);
+  color: var(--ink);
   font-size: 12px;
   padding: 9px;
   min-height: 35px;
@@ -1376,8 +1379,8 @@ input::placeholder {
   padding: 11px;
   border: 1px solid var(--border-strong);
   border-radius: 7px;
-  background: var(--surface-hover);
-  color: var(--ink-2);
+  background: var(--field);
+  color: var(--ink);
   font-size: 11px;
   margin-bottom: 15px;
   min-height: 42px;

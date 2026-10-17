@@ -5,7 +5,7 @@ import { AppShell } from "@/components/navigation";
 import { themeScript } from "@/components/theme-toggle";
 export const metadata: Metadata = {
   title: {
-    default: "Commons — Good software, for everyone.",
+    default: "Commons",
     template: "%s · Commons",
   },
   description:
