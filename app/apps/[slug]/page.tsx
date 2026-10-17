@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Heart } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { getApp, getApps, usingFixtures } from "@/lib/api";
 import {
   AppIcon,
@@ -11,6 +11,7 @@ import {
 import {
   DownloadButton,
   FeatureList,
+  ReleaseNotes,
   ScreenshotGallery,
 } from "@/components/app-details";
 export async function generateMetadata({
@@ -64,31 +65,43 @@ export default async function DetailPage({
             target="_blank"
             rel="noreferrer"
           >
-            View source code <ArrowUpRight size={13} />
+            Source code <ArrowUpRight size={13} />
           </a>
+          {app.websiteUrl && (
+            <a
+              className="source-link"
+              href={app.websiteUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Website <ArrowUpRight size={13} />
+            </a>
+          )}
         </div>
       </div>
       <div className="detail-layout">
         <div>
           <ScreenshotGallery app={app} />
           <section className="detail-section">
-            <h2>A little about {app.name}.</h2>
+            <h2>About</h2>
             <p>{app.description}</p>
             <FeatureList features={app.features} />
           </section>
           <section className="detail-section">
-            <h2>The details</h2>
+            <h2>Information</h2>
             <dl className="info-grid">
               <div>
-                <dt>Made by</dt>
+                <dt>Developer</dt>
                 <dd>{app.developerName}</dd>
               </div>
-              <div>
-                <dt>Available on</dt>
-                <dd>
-                  <PlatformBadge app={app} />
-                </dd>
-              </div>
+              {app.platforms.length > 0 && (
+                <div>
+                  <dt>Available on</dt>
+                  <dd>
+                    <PlatformBadge app={app} />
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>License</dt>
                 <dd>{app.license ?? "See developer website"}</dd>
@@ -108,16 +121,6 @@ export default async function DetailPage({
                 </div>
               )}
             </dl>
-            <details>
-              <summary>Source code & technical information</summary>
-              <p>
-                Explore the project, read its license, or contribute to its
-                development.
-              </p>
-              <a href={app.repositoryUrl} target="_blank" rel="noreferrer">
-                View source code <ArrowUpRight size={14} />
-              </a>
-            </details>
           </section>
         </div>
         <aside>
@@ -128,25 +131,14 @@ export default async function DetailPage({
               (usingFixtures ? undefined : "/api/apps/{slug}/download")
             }
           />
-          <div className="community-note">
-            <Heart size={20} />
-            <h3>Made by people who care.</h3>
-            <p>
-              Open-source software is built in the open. Explore it, share it,
-              and support the people behind it.
-            </p>
-          </div>
         </aside>
       </div>
       <section className="detail-section">
         <h2>What’s new</h2>
         {app.release?.notes ? (
-          <p className="release-notes">{app.release.notes}</p>
+          <ReleaseNotes notes={app.release.notes} />
         ) : (
-          <p>
-            Release notes haven’t been added to this listing. Visit the
-            developer for the latest changes.
-          </p>
+          <p>No release notes yet.</p>
         )}
         {(app.releasesUrl || app.release?.releasesUrl) && (
           <a
@@ -154,13 +146,13 @@ export default async function DetailPage({
             target="_blank"
             rel="noreferrer"
           >
-            View official releases <ArrowUpRight size={14} />
+            All releases <ArrowUpRight size={14} />
           </a>
         )}
       </section>
       {related.length > 0 && (
         <section className="discovery-section related-section">
-          <SectionHeading title="More to explore" />
+          <SectionHeading title="You might also like" />
           <AppGrid apps={related} />
         </section>
       )}

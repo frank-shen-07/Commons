@@ -123,7 +123,7 @@ export function Explore({
       <section className={`results results-${view}`}>
         <div className="results-heading">
           <p role="status">
-            {results.length} {results.length === 1 ? "app" : "apps"} to discover
+            {results.length} {results.length === 1 ? "app" : "apps"}
           </p>
           <div className="result-controls">
             <label>

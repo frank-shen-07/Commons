@@ -13,7 +13,7 @@ export default function Loading() {
           <div key={i} className="skeleton skeleton-card" />
         ))}
       </div>
-      <p role="status">Finding something good…</p>
+      <p role="status" className="sr-only">Loading</p>
     </main>
   );
 }

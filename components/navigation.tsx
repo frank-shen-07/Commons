@@ -11,11 +11,10 @@ import {
   Shield,
   Wrench,
   Code2,
-  Heart,
   Search,
-  PanelLeftClose,
 } from "lucide-react";
 import { Brand } from "./brand";
+import { ThemeToggle } from "./theme-toggle";
 const links = [
   { href: "/", label: "Discover", icon: Compass },
   { href: "/apps", label: "Browse apps", icon: Grid2X2 },
@@ -42,16 +41,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [router]);
-  const section =
-    pathname === "/"
-      ? "Discover"
-      : pathname === "/apps" || pathname === "/explore"
-        ? "Browse apps"
-        : pathname.startsWith("/apps/")
-          ? "App details"
-          : pathname.startsWith("/developer")
-            ? "Developer workspace"
-            : "About Commons";
   return (
     <>
       <aside className="sidebar">
@@ -89,15 +78,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="open-note">
-            <Heart size={18} />
-            <strong>Open by nature.</strong>
-            <p>
-              Made by communities.
-              <br />
-              Shared with everyone.
-            </p>
-          </div>
           <Link href="/developer" className="sidebar-publish">
             <Code2 size={16} />
             For developers
@@ -110,10 +90,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="site-content">
         <header className="topbar">
-          <div className="topbar-context">
-            <PanelLeftClose size={16} />
-            <span>{section}</span>
-          </div>
           <Link href="/" className="mobile-brand" aria-label="Commons home">
             <Layers2 size={21} />
             commons.
@@ -134,6 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Publish your app
             <ArrowUpRight size={14} />
           </Link>
+          <ThemeToggle />
         </header>
         {children}
       </div>

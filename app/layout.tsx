@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/marketplace";
 import "./globals.css";
 import { AppShell } from "@/components/navigation";
+import { themeScript } from "@/components/theme-toggle";
 export const metadata: Metadata = {
   title: {
     default: "Commons — Good software, for everyone.",
@@ -16,7 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

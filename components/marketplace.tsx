@@ -29,7 +29,6 @@ export { Brand } from "./brand";
 export function Footer() {
   return (
     <footer className="footer">
-      <p>Good software belongs to everyone.</p>
       <div>
         <Link href="/about">About Commons</Link>
         <a href="https://opensource.org/osd" target="_blank" rel="noreferrer">
@@ -102,6 +101,7 @@ export function AppIcon({
   );
 }
 export function PlatformBadge({ app }: { app: MarketplaceApp }) {
+  if (!app.platforms.length) return null;
   return (
     <span className="platforms">
       <Monitor size={12} />
@@ -141,10 +141,11 @@ export function AppCard({
           <ChevronRight size={12} />
         </span>
       </div>
-      <div className="app-card-bottom">
-        <PlatformBadge app={app} />
-        <span>Open source</span>
-      </div>
+      {app.platforms.length > 0 && (
+        <div className="app-card-bottom">
+          <PlatformBadge app={app} />
+        </div>
+      )}
     </Link>
   );
 }
@@ -202,16 +203,7 @@ export function FeaturedAppCard({
       className={`featured-card ${secondary ? "feature-light" : "feature-dark"}`}
     >
       <div className="feature-copy">
-        <h2>
-          {secondary
-            ? "A little focus.\nA lot of possibility."
-            : "Your ideas deserve\na bigger stage."}
-        </h2>
-        <p>
-          {secondary
-            ? "Make room for the work that matters."
-            : "Record, create, and share your point of view."}
-        </p>
+        <h2>{app.summary}</h2>
       </div>
       <div className="feature-media">
         {app.screenshots[0] ? (
@@ -231,12 +223,10 @@ export function FeaturedAppCard({
         <AppIcon app={app} />
         <div>
           <strong>{app.name}</strong>
-          <span>
-            {app.category} · {app.summary}
-          </span>
+          <span>{app.category}</span>
         </div>
         <span className="feature-view">
-          Explore
+          View
           <ArrowRight size={14} />
         </span>
       </div>
@@ -270,8 +260,7 @@ export function EmptyState({ reset }: { reset: () => void }) {
   return (
     <div className="empty-state">
       <Search size={32} />
-      <h2>No apps found this time</h2>
-      <p>Try a different search or clear your filters.</p>
+      <h2>No apps found</h2>
       <Button variant="secondary" onClick={reset}>
         Clear search & filters
       </Button>

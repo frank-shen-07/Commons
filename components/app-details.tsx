@@ -6,7 +6,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  ImageIcon,
 } from "lucide-react";
 import {
   platformLabels,
@@ -103,7 +102,6 @@ export function DownloadButton({
   return (
     <section className="download-panel" aria-label="Get this application">
       <h2>Get the app</h2>
-      <p>Choose a download for your device.</p>
       <label htmlFor="download-platform">Choose your device</label>
       <select
         id="download-platform"
@@ -214,25 +212,14 @@ export function DownloadButton({
         </p>
       )}
       <p className="download-guidance">
-        Software is provided by its publisher. A download does not mean the app
-        is installed or security verified.
+        Provided by the publisher. Not security verified.
       </p>
     </section>
   );
 }
 export function ScreenshotGallery({ app }: { app: MarketplaceApp }) {
   const [index, setIndex] = useState(0);
-  if (!app.screenshots.length)
-    return (
-      <div className="screenshot-empty">
-        <ImageIcon size={34} />
-        <h3>A closer look is coming.</h3>
-        <p>Screenshots haven’t been added to this listing yet.</p>
-        <a href={app.websiteUrl} target="_blank" rel="noreferrer">
-          Visit the official website <ArrowUpRight size={14} />
-        </a>
-      </div>
-    );
+  if (!app.screenshots.length) return null;
   return (
     <section aria-label="App screenshots" className="screenshot-gallery">
       <Image
@@ -278,5 +265,33 @@ export function FeatureList({ features }: { features: string[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+// Long GitHub release notes collapse to a preview; the toggle only appears
+// when the text actually overflows.
+export function ReleaseNotes({ notes }: { notes: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = notes.length > 600 || notes.split("\n").length > 10;
+  return (
+    <div className="release">
+      <p
+        id="release-notes"
+        className={`release-notes ${long && !expanded ? "release-clamped" : ""}`}
+      >
+        {notes}
+      </p>
+      {long && (
+        <button
+          type="button"
+          className="release-toggle"
+          aria-expanded={expanded}
+          aria-controls="release-notes"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
   );
 }

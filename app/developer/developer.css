@@ -29,10 +29,10 @@
   align-items: flex-start;
   gap: 14px;
   padding: 20px 24px;
-  border: 1px solid #d8e5ff;
+  border: 1px solid var(--border-accent);
   border-radius: var(--radius);
-  background: #eff5ff;
-  color: #284a83;
+  background: var(--selection);
+  color: var(--selection-ink);
   margin: 20px 0;
 }
 .publisher-notice svg {
@@ -41,7 +41,7 @@
 }
 .publisher-notice p {
   margin: 4px 0 0;
-  color: #506586;
+  color: var(--muted);
 }
 .publisher-notice-copy {
   flex: 1;
@@ -68,7 +68,7 @@
   padding: 64px 24px;
   text-align: center;
   background: var(--surface);
-  border: 1px dashed #cbd4e4;
+  border: 1px dashed var(--border-strong);
   border-radius: 18px;
 }
 .publisher-empty > svg {
@@ -123,8 +123,8 @@
   display: inline-flex;
   border-radius: 20px;
   padding: 5px 10px;
-  color: #476080;
-  background: #edf2fa;
+  color: var(--ink-2);
+  background: var(--surface-sunken);
   font-size: 11px;
   font-weight: 600;
 }
@@ -187,7 +187,7 @@
 .publisher select,
 .publisher textarea {
   width: 100%;
-  border: 1px solid #d9dfe8;
+  border: 1px solid var(--border-strong);
   border-radius: 9px;
   padding: 12px 14px;
   background: white;
@@ -249,7 +249,7 @@
   display: flex;
   gap: 12px;
   padding: 14px;
-  background: #f7f9fc;
+  background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: 10px;
 }
@@ -339,9 +339,9 @@
 }
 .publisher-validation,
 .publisher-error {
-  border: 1px solid #edcfb5;
-  background: #fff8f1;
-  color: #835229;
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-ink);
   border-radius: 12px;
   padding: 18px 24px;
   margin: 24px 0;

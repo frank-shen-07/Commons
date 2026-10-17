@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { OpenSourceBanner } from "@/components/marketplace";
 export const metadata = { title: "About Commons" };
 export default function About() {
   return (
@@ -9,7 +8,6 @@ export default function About() {
         Commons makes open-source software easier to discover, understand, and
         enjoy.
       </p>
-      <OpenSourceBanner />
       <section className="detail-section">
         <h2>What does open source mean?</h2>
         <p>

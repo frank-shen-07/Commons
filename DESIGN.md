@@ -119,6 +119,10 @@ The palette is cool, bright, and neutral, with a focused blue accent. Frontmatte
 - **Slate Metadata** (`muted`): descriptions, compatibility, and secondary information.
 - **Fine Divider** (`border`): panel edges and structural separators.
 
+### Dark theme
+
+Every color is a semantic token on `:root` in `app/globals.css` (`--surface-sunken`, `--accent-ink`, `--border-accent`, collection `--tint-*`, feature-card tokens, and so on). Dark values live under `@media (prefers-color-scheme: dark)` scoped to `:root:not([data-theme="light"])`, and again under `:root[data-theme="dark"]`. The site follows the system theme until the visitor uses the top-bar toggle, which stores `commons-theme` in localStorage; an inline script in `app/layout.tsx` applies it before paint. Light remains the primary identity. Never write a literal hex in component CSS; add or reuse a token with both values.
+
 **The Action Blue Rule.** Use blue to signal action, focus, or selection; keep ordinary reading text in ink or muted neutrals.
 
 ## Typography
@@ -131,7 +135,7 @@ The character is precise and approachable. Headings use tight tracking; metadata
 - **Title:** section labels and detail section headings.
 - **Body:** default document text.
 - **Prose:** detail paragraphs, with an observed maximum width (72ch).
-- **Label:** button text; metadata has context-specific smaller sizes (8–12px).
+- **Label:** button text; metadata uses 11–12px. 11px is the floor; nothing renders smaller.
 
 ## Layout
 

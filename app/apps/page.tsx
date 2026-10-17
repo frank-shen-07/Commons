@@ -13,10 +13,7 @@ export default async function ExplorePage({
   ]);
   return (
     <main id="main" className="page-container inner-page">
-      <h1>Find your next favorite app.</h1>
-      <p className="page-description">
-        Browse independent software for your work, ideas, and everyday life.
-      </p>
+      <h1>Browse apps</h1>
       {usingFixtures && (
         <p className="sample-label">
           Preview catalog · Sample listings, no live marketplace activity
