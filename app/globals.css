@@ -787,6 +787,27 @@ input::placeholder {
 .app-card-compact:hover {
   background: var(--fill-hover);
 }
+/* Everyday essentials: separated tiles instead of divided rows. */
+.essentials-section {
+  margin-bottom: 44px;
+}
+.essentials-section .section-heading {
+  margin-top: 8px;
+  margin-bottom: 18px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.essentials-section .app-grid-compact {
+  gap: 14px 20px;
+}
+.essentials-section .app-card-compact {
+  border-bottom: 0;
+  border-radius: 12px;
+}
+.essentials-section .app-card-compact .app-card-main {
+  padding: 14px;
+  gap: 14px;
+}
 .noteworthy-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -933,8 +954,8 @@ input::placeholder {
   justify-content: space-between;
   gap: 20px;
   max-width: 1440px;
-  margin: auto;
-  padding: 25px var(--space) 30px;
+  margin: 40px auto 0;
+  padding: 34px var(--space) 38px;
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 11px;

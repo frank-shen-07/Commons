@@ -40,11 +40,8 @@ export default async function Home() {
           <FeaturedAppCard app={app} key={app.id} secondary={index === 1} />
         ))}
       </section>
-      <section className="discovery-section">
-        <SectionHeading
-          title="Everyday essentials"
-          href="/apps"
-        />
+      <section className="discovery-section essentials-section">
+        <SectionHeading title="Everyday essentials" href="/apps" />
         <AppGrid apps={everyday} variant="compact" />
       </section>
       {noteworthy.length > 0 && (
