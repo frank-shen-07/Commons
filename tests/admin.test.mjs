@@ -11,6 +11,13 @@ import {
 import { ApiError, readJson } from "../lib/backend/errors.ts";
 import { apiUuidSchema } from "../lib/backend/validation.ts";
 
+import {
+  applicationLookupSchema,
+  applicationDeletionSchema,
+  applicationSlugFromUrl,
+  deletionErrorResponse,
+} from "../lib/backend/admin-deletion-validation.ts";
+
 const adminId = "10000000-0000-4000-8000-000000000001";
 const revisionId = "10000000-0000-4000-8000-000000000002";
 // Execute the actual server modules with only their external session/database boundaries replaced.
@@ -30,6 +37,7 @@ async function serverModule(path, imports, env = {}) {
       process: { env },
       Response,
       Request,
+      URL,
       console,
       require(name) {
         if (name === "server-only") return {};
@@ -268,4 +276,194 @@ test("admin reads expose submitted names and context without leaking snapshots i
     (await services.adminRevision(revisionId)).snapshot,
     revision.snapshot,
   );
+});
+
+test("application URL and deletion inputs reject alternate targets and privileged fields", () => {
+  const origin = "http://localhost:3000";
+  assert.equal(
+    applicationSlugFromUrl(origin + "/apps/skyblockhack", origin),
+    "skyblockhack",
+  );
+  assert.equal(
+    applicationSlugFromUrl(origin + "/apps/skyblockhack/", origin),
+    "skyblockhack",
+  );
+  for (const url of [
+    "https://other.test/apps/skyblockhack",
+    origin + "/apps",
+    origin + "/apps/skyblockhack/other",
+    origin + "/apps/skyblockhack?platform=windows",
+    origin + "/apps/skyblockhack#details",
+    origin + "/apps/%73kyblockhack",
+    "http://user:password@localhost:3000/apps/skyblockhack",
+  ]) {
+    assert.throws(
+      () => applicationSlugFromUrl(url, origin),
+      (e) => e.status === 422,
+    );
+  }
+  assert.equal(
+    applicationLookupSchema.safeParse({
+      url: origin + "/apps/skyblockhack",
+      id: revisionId,
+    }).success,
+    false,
+  );
+  const input = {
+    confirmSlug: "skyblockhack",
+    expectedUpdatedAt: "2026-10-18T00:00:00.123456+00:00",
+  };
+  assert.equal(applicationDeletionSchema.safeParse(input).success, true);
+  assert.equal(
+    applicationDeletionSchema.safeParse({
+      ...input,
+      expectedUpdatedAt: "yesterday",
+    }).success,
+    false,
+  );
+  assert.equal(
+    applicationDeletionSchema.safeParse({ ...input, adminId }).success,
+    false,
+  );
+});
+
+test("deletion APIs authorize before lookup or mutation, validate previews, and confirm database results", async () => {
+  for (const identity of [null, { id: revisionId }, { id: adminId }]) {
+    let clients = 0;
+    let rpcError = null;
+    const calls = [];
+    const app = {
+      id: revisionId,
+      slug: "skyblockhack",
+      name: "Test application",
+      status: "published",
+      repository_url: "https://github.com/owner/test",
+      publisher_id: adminId,
+      updated_at: "2026-10-18T00:00:00.123456+00:00",
+    };
+    const requireAdmin = async () => {
+      if (!identity)
+        throw new ApiError("Sign in required.", 401, "UNAUTHENTICATED");
+      assertAdmin(identity.id, adminId);
+      return identity;
+    };
+    const services = await serverModule("lib/backend/admin-deletion.ts", {
+      "./admin": { requireAdmin },
+      "./admin-deletion-validation": { applicationSlugFromUrl },
+      "./errors": { ApiError },
+      "./supabase-admin": {
+        createSupabaseAdminClient() {
+          clients++;
+          return {
+            from(table) {
+              return {
+                select() {
+                  return this;
+                },
+                eq() {
+                  return this;
+                },
+                async maybeSingle() {
+                  return {
+                    data:
+                      table === "applications"
+                        ? app
+                        : { github_username: "owner", display_name: "Owner" },
+                    error: null,
+                  };
+                },
+              };
+            },
+            async rpc(name, args) {
+              calls.push({ name, args });
+              return {
+                data: [{ id: revisionId, slug: "skyblockhack" }],
+                error: rpcError,
+              };
+            },
+          };
+        },
+      },
+    });
+    const paths = [];
+    const deps = {
+      "@/lib/backend/admin": { requireAdmin },
+      "@/lib/backend/admin-deletion": services,
+      "@/lib/backend/admin-deletion-validation": {
+        applicationLookupSchema,
+        applicationDeletionSchema,
+        deletionErrorResponse,
+      },
+      "@/lib/backend/validation": { apiUuidSchema },
+      "@/lib/backend/errors": { ApiError, readJson, logServerError() {} },
+      "next/cache": {
+        revalidatePath(path) {
+          paths.push(path);
+        },
+      },
+    };
+    const lookup = await serverModule(
+      "app/api/admin/applications/lookup/route.ts",
+      deps,
+    );
+    const remove = await serverModule(
+      "app/api/admin/applications/[id]/route.ts",
+      deps,
+    );
+    const expected = !identity ? 401 : identity.id === adminId ? 200 : 403;
+    const response = await lookup.POST(
+      new Request("http://localhost:3000/api/admin/applications/lookup", {
+        method: "POST",
+        body: JSON.stringify({
+          url: "http://localhost:3000/apps/skyblockhack",
+        }),
+      }),
+    );
+    assert.equal(response.status, expected);
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    if (expected === 200) {
+      const result = (await response.json()).data;
+      assert.equal(result.updatedAt, app.updated_at);
+      assert.equal(result.slug, "skyblockhack");
+      assert.equal(result.publisher.githubUsername, "owner");
+    }
+    const input = {
+      confirmSlug: "skyblockhack",
+      expectedUpdatedAt: app.updated_at,
+    };
+    const invoke = (body = input, id = revisionId) =>
+      remove.DELETE(
+        new Request("http://localhost:3000/api/admin/applications/" + id, {
+          method: "DELETE",
+          body: JSON.stringify(body),
+        }),
+        { params: Promise.resolve({ id }) },
+      );
+    const deleted = await invoke();
+    assert.equal(deleted.status, expected);
+    assert.equal(deleted.headers.get("Cache-Control"), "no-store");
+    if (expected === 200) {
+      assert.equal((await deleted.json()).data.deleted, true);
+      assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), {
+        name: "admin_delete_application",
+        args: {
+          p_application_id: revisionId,
+          p_confirm_slug: input.confirmSlug,
+          p_expected_updated_at: app.updated_at,
+        },
+      });
+      assert.ok(paths.includes("/apps/skyblockhack"));
+      assert.equal((await invoke({ confirmSlug: "skyblockhack" })).status, 422);
+      assert.equal((await invoke(input, "invalid")).status, 404);
+      rpcError = { code: "40001" };
+      const stale = await invoke();
+      assert.equal(stale.status, 409);
+      assert.equal((await stale.json()).error.code, "STALE_APPLICATION");
+      rpcError = { code: "PGRST202" };
+      assert.equal((await invoke()).status, 503);
+    } else {
+      assert.equal(clients, 0);
+      assert.equal((await invoke({}, "invalid")).status, expected);
+    }
+  }
 });

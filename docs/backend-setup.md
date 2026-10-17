@@ -81,13 +81,13 @@ The UI's current fixture catalog remains the fallback when `MARKETPLACE_API_URL`
 
 The portal now uses the authenticated APIs. Sign in through `/api/auth/github?next=/developer`, verify repository permissions, save a complete draft, and submit for review. Dashboard list/detail reads, optimistic saves, review withdrawal and published updates use the new private revision endpoints. See [member-3-contracts.md](./member-3-contracts.md).
 
-Apply all three migrations in filename order first. A missing revision schema produces an actionable `503 MIGRATION_REQUIRED`; the portal must not fall back to claiming a local draft is saved on the server. Browser recovery drafts remain separate and require explicit migration to the signed-in account.
+Apply all migrations in filename order first. A missing revision schema produces an actionable `503 MIGRATION_REQUIRED`; the portal must not fall back to claiming a local draft is saved on the server. Browser recovery drafts remain separate and require explicit migration to the signed-in account.
 
 ## Moderation, deployment, and limits
 
 ### Administrator setup and routine review
 
-Apply `202610170001_commons_marketplace.sql`, `202610170002_publisher_revisions.sql`, then `202610170003_admin_review.sql` through the team's authorised Supabase migration workflow. Deployment does not apply SQL automatically. Check `select to_regclass('public.application_revisions'), to_regprocedure('public.admin_approve_application_revision(uuid,integer,uuid)');`; both must be non-null. If necessary, refresh PostgREST with `notify pgrst, 'reload schema';`.
+Apply `202610170001_commons_marketplace.sql`, `202610170002_publisher_revisions.sql`, then `202610170003_admin_review.sql` and `202610180004_admin_delete.sql` through the team's authorised Supabase migration workflow. Deployment does not apply SQL automatically. Check `select to_regclass('public.application_revisions'), to_regprocedure('public.admin_approve_application_revision(uuid,integer,uuid)');`; both must be non-null. If necessary, refresh PostgREST with `notify pgrst, 'reload schema';`.
 
 Set the server-only `ADMIN_USER_IDS` environment variable to a comma-separated list of Supabase Auth user UUIDs. Find them in Supabase Auth → Users, or the signed-in account's `/api/auth/me` response. Example: `ADMIN_USER_IDS=10000000-0000-4000-8000-000000000001`. Missing or empty configuration grants nobody access; invalid entries are ignored. Restart or redeploy after changing configuration. Never use a `NEXT_PUBLIC_` prefix. The service-role key remains server-only.
 
@@ -106,3 +106,7 @@ GitHub uses bounded request timeouts and surfaces rate limits. No globally distr
 ### Live admin acceptance check
 
 After confirming the hosted schema and administrator configuration, use real accounts: developer signs in and submits a repository release → administrator signs in at `/admin` → reviews the exact snapshot → approves → user opens the public listing and requests its selected installer. Submit an update and confirm the old public version stays available until approval. Public API cache headers permit a short delay before an approved update appears; refresh after the existing cache window if needed. Browser fixture tests and embedded database tests do not verify hosted OAuth or production RLS.
+
+### Permanent application deletion
+
+The `/admin` page also supports URL lookup and typed-slug confirmation for permanent deletion. Apply the additive `202610180004_admin_delete.sql` migration first. See [admin deletion](admin-deletion.md) for API contracts, deployment and the strict live-test boundary: `skyblockhack` only; OBS must remain untouched.
