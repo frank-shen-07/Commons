@@ -17,6 +17,7 @@ Open http://localhost:3000. Validation: `npm run lint`, `npm run typecheck`, `np
 
 - `/`: two screenshot-led features, compact app listings, an explicitly labeled New & Noteworthy sample selection, category collections, and a developer invitation.
 - `/apps`: functional search by name/description/category/developer, category/platform/license filtering, featured or alphabetical sorting, reset, grid/list views, and empty states.
+- `/apps` search also queries GitHub’s public repository search after the user pauses typing, showing public repositories as Commons-style app tiles ordered by star count. Selecting a tile opens a repository detail page with available stable-release installers; only canonical GitHub release assets are downloadable. Public-repository previews need no sign-in, while saving or submitting a listing still requires GitHub account access and repository-maintainer verification. GitHub’s public search rate limit applies.
 - `/explore`: preserved legacy route using the same Browse page.
 - `/apps/[slug]`: app identity, gallery, manual platform selection, official download/release fallback, description, features, available metadata, release-note fallback, source link, and related apps.
 - `/about`: open-source explanation and honest publishing-portal handoff.

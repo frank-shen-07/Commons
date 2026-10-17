@@ -33,6 +33,7 @@ export interface MarketplaceApp {
   updatedAt: string | null;
   platforms: Platform[];
   featured?: boolean;
+  repositoryStars?: number;
   color: string;
   features: string[];
   developer?: AppDeveloper;

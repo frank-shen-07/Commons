@@ -160,7 +160,15 @@ async function workspace({ signed = true, saved = null, stale = false } = {}) {
       viewport: { width: 1440, height: 1000 },
     }),
     page = await context.newPage();
-  const state = { signed, saved, stale, creates: 0, submits: 0 };
+  const state = {
+    signed,
+    saved,
+    stale,
+    creates: 0,
+    submits: 0,
+    imports: [],
+    downloads: [],
+  };
   await context.route("**/api/**", async (route) => {
     const url = new URL(route.request().url()),
       path = url.pathname,
@@ -185,7 +193,39 @@ async function workspace({ signed = true, saved = null, stale = false } = {}) {
           );
     if (path === "/api/categories")
       return json({ data: [{ id, name: "Utilities", slug: "utilities" }] });
-    if (path === "/api/developer/import") return json(repo);
+    if (path === "/api/developer/import") {
+      const repository = url.searchParams.get("repository");
+      state.imports.push(repository);
+      return json(
+        repository === "owner/app"
+          ? repo
+          : {
+              ...repo,
+              fullName: repository,
+              name: repository.split("/")[1],
+              owner: repository.split("/")[0],
+              url: `https://github.com/${repository}`,
+            },
+      );
+    }
+    if (path === "/api/developer/repository-download") {
+      const repository = url.searchParams.get("repository");
+      state.downloads.push({
+        repository,
+        platform: url.searchParams.get("platform"),
+        assetId: url.searchParams.get("assetId"),
+      });
+      return json({
+        data: {
+          platform: "windows",
+          url: `https://github.com/${repository}/releases/download/v1/App-x64.exe`,
+          label: "App-x64.exe",
+          architecture: "x64",
+          format: "exe",
+          instructions: "Open the downloaded installer and follow its instructions.",
+        },
+      });
+    }
     if (path === "/api/developer/repositories/verify")
       return json({ data: repo });
     if (path === "/api/developer/apps")
@@ -254,6 +294,136 @@ async function noOverflow(page) {
     "horizontal overflow",
   );
 }
+
+test(
+  "browse search uses Discover tiles that open repository details and a compatible download",
+  { timeout: 90000 },
+  async () => {
+    const { context, page, state } = await workspace({ signed: false });
+    let githubSearchUrl;
+    await context.route("https://api.github.com/**", async (route) => {
+      githubSearchUrl = new URL(route.request().url());
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          total_count: 3,
+          items: [
+            {
+              id: 2,
+              full_name: "photocraft/less-popular",
+              description: "A photo editor",
+              stargazers_count: 12,
+              language: "Rust",
+              html_url: "https://github.com/photocraft/less-popular",
+              owner: {
+                avatar_url: "https://avatars.githubusercontent.com/u/2",
+              },
+              private: false,
+              archived: false,
+            },
+            {
+              id: 1,
+              full_name: "photocraft/most-popular",
+              description: "Another photo editor",
+              stargazers_count: 850,
+              language: "TypeScript",
+              html_url: "https://github.com/photocraft/most-popular",
+              owner: {
+                avatar_url: "https://avatars.githubusercontent.com/u/1",
+              },
+              private: false,
+              archived: false,
+            },
+            {
+              id: 3,
+              full_name: "photocraft/archived",
+              description: "Archived project",
+              stargazers_count: 9000,
+              language: null,
+              html_url: "https://github.com/photocraft/archived",
+              owner: {
+                avatar_url: "https://avatars.githubusercontent.com/u/3",
+              },
+              private: false,
+              archived: true,
+            },
+          ],
+        }),
+      });
+    });
+    await context.route(
+      "https://github.com/**/releases/download/v1/App-x64.exe",
+      (route) =>
+        route.fulfill({
+          headers: {
+            "Content-Disposition": 'attachment; filename="App-x64.exe"',
+          },
+          contentType: "application/octet-stream",
+          body: "test download bytes",
+        }),
+    );
+    try {
+      await page.goto(base + "/apps");
+      await page
+        .getByLabel("Search apps and public GitHub repositories")
+        .fill("photocraft");
+      await page
+        .getByLabel("Search apps and public GitHub repositories")
+        .press("Enter");
+      await page.waitForURL(/\/apps\?q=photocraft$/);
+      const results = page.locator(".github-results .app-card-compact");
+      await results.first().waitFor();
+      assert.equal(
+        await results.nth(0).locator(".app-card-copy h3").innerText(),
+        "most-popular",
+      );
+      assert.equal(
+        await results.nth(1).locator(".app-card-copy h3").innerText(),
+        "less-popular",
+      );
+      assert.match(await results.nth(0).innerText(), /GitHub · 850 stars/);
+      assert.equal(githubSearchUrl.searchParams.get("sort"), "stars");
+      assert.equal(githubSearchUrl.searchParams.get("order"), "desc");
+      assert.match(githubSearchUrl.searchParams.get("q"), /photocraft/);
+      assert.match(githubSearchUrl.searchParams.get("q"), /is:public/);
+
+      for (const width of [1440, 1024, 768, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await noOverflow(page);
+      }
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      assert.equal(
+        await results.nth(0).getAttribute("href"),
+        "/apps/github/photocraft/most-popular",
+      );
+      await results.nth(0).click();
+      await page.waitForURL(/\/apps\/github\/photocraft\/most-popular$/);
+      await page
+        .getByRole("heading", { name: "most-popular", exact: true })
+        .waitFor();
+      await page.getByText(/not a reviewed Commons listing/).waitFor();
+      assert.deepEqual(
+        [...new Set(state.imports)],
+        ["photocraft/most-popular"],
+      );
+      await page.getByLabel("Choose your device").selectOption("windows");
+      const download = page.waitForEvent("download");
+      await page
+        .getByRole("button", { name: "Download for Windows", exact: true })
+        .click();
+      await download;
+      assert.deepEqual(state.downloads, [
+        {
+          repository: "photocraft/most-popular",
+          platform: "windows",
+          assetId: null,
+        },
+      ]);
+    } finally {
+      await context.close();
+    }
+  },
+);
 
 test(
   "verified import, persisted save, preview, submission and return to draft",

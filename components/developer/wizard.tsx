@@ -43,13 +43,15 @@ const steps = ["Connect", "Configure", "Preview", "Submit"];
 export function PublishingWizard({
   draftId,
   localOnly = false,
+  initialRepository = "",
 }: {
   draftId?: string;
   localOnly?: boolean;
+  initialRepository?: string;
 }) {
   const [downloadPlatform, setDownloadPlatform] = useState<Platform | "">("");
   const [step, setStep] = useState(0),
-    [repository, setRepository] = useState("");
+    [repository, setRepository] = useState(initialRepository);
   const [repo, setRepo] = useState<RepositoryImport | null>(null),
     [input, setInput] = useState<ListingInput | null>(null);
   const [id, setId] = useState(""),

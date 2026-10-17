@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Search, X, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import { AppGrid, EmptyState } from "./marketplace";
+import { GithubRepositoryResults } from "./github-repositories";
 import { platforms, platformLabels, type MarketplaceApp } from "@/lib/types";
 export function Explore({
   apps,
@@ -54,10 +55,10 @@ export function Explore({
       <div className="explore-search">
         <Search size={20} />
         <input
-          aria-label="Search apps"
+          aria-label="Search apps, categories, developers, or GitHub repositories"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by app, category, or developer"
+          placeholder="Search apps, categories, developers, or GitHub repositories"
         />
         {query && (
           <button aria-label="Clear search" onClick={() => setQuery("")}>
@@ -161,9 +162,10 @@ export function Explore({
             variant={view === "list" ? "compact" : "standard"}
           />
         ) : (
-          <EmptyState reset={reset} />
+          <EmptyState reset={reset} searchQuery={query.trim()} />
         )}
       </section>
+      <GithubRepositoryResults query={query} />
     </div>
   );
 }
