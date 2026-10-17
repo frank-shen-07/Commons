@@ -25,7 +25,11 @@ export async function GET(request: Request) {
       throw new PortalError("Choose a supported desktop platform.");
     }
 
-    const imported = await importRepository(repository);
+    // Optional server token lifts GitHub's shared-IP anonymous limit (60/hour).
+    const imported = await importRepository(
+      repository,
+      process.env.GITHUB_TOKEN || undefined,
+    );
     const resolution = resolveRepositoryDownload(
       imported.releases,
       repository,
