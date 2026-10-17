@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T03:21:19.105775+00:00",
+  "title": "Design System: Commons",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Cool Canvas",
+        "tonalRamp": [
+          "oklch(15% 0.005 260)",
+          "oklch(26% 0.005 260)",
+          "oklch(38% 0.005 260)",
+          "oklch(49% 0.005 260)",
+          "oklch(61% 0.005 260)",
+          "oklch(72% 0.005 260)",
+          "oklch(84% 0.005 260)",
+          "oklch(95% 0.005 260)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White Surface",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Reading Ink",
+        "tonalRamp": [
+          "oklch(15% 0.008 260)",
+          "oklch(26% 0.008 260)",
+          "oklch(38% 0.008 260)",
+          "oklch(49% 0.008 260)",
+          "oklch(61% 0.008 260)",
+          "oklch(72% 0.008 260)",
+          "oklch(84% 0.008 260)",
+          "oklch(95% 0.008 260)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Metadata",
+        "tonalRamp": [
+          "oklch(15% 0.035 260)",
+          "oklch(26% 0.035 260)",
+          "oklch(38% 0.035 260)",
+          "oklch(49% 0.035 260)",
+          "oklch(61% 0.035 260)",
+          "oklch(72% 0.035 260)",
+          "oklch(84% 0.035 260)",
+          "oklch(95% 0.035 260)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "tonalRamp": [
+          "oklch(15% 0.18 260)",
+          "oklch(26% 0.18 260)",
+          "oklch(38% 0.18 260)",
+          "oklch(49% 0.18 260)",
+          "oklch(61% 0.18 260)",
+          "oklch(72% 0.18 260)",
+          "oklch(84% 0.18 260)",
+          "oklch(95% 0.18 260)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Fine Divider",
+        "tonalRamp": [
+          "oklch(15% 0.01 260)",
+          "oklch(26% 0.01 260)",
+          "oklch(38% 0.01 260)",
+          "oklch(49% 0.01 260)",
+          "oklch(61% 0.01 260)",
+          "oklch(72% 0.01 260)",
+          "oklch(84% 0.01 260)",
+          "oklch(95% 0.01 260)"
+        ]
+      },
+      "selection": {
+        "role": "primary",
+        "displayName": "Selection Wash",
+        "tonalRamp": [
+          "oklch(15% 0.025 260)",
+          "oklch(26% 0.025 260)",
+          "oklch(38% 0.025 260)",
+          "oklch(49% 0.025 260)",
+          "oklch(61% 0.025 260)",
+          "oklch(72% 0.025 260)",
+          "oklch(84% 0.025 260)",
+          "oklch(95% 0.025 260)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page headline",
+        "purpose": "Primary page identification."
+      },
+      "title": {
+        "displayName": "Section title",
+        "purpose": "Section and detail headings."
+      },
+      "body": {
+        "displayName": "Base body",
+        "purpose": "Document default text."
+      },
+      "prose": {
+        "displayName": "Detail prose",
+        "purpose": "Longer app detail paragraphs."
+      },
+      "label": {
+        "displayName": "Action label",
+        "purpose": "Shared button text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "screenshot-media",
+        "value": "0 9px 25px #0003",
+        "purpose": "Featured screenshot imagery only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Existing transform easing custom property."
+      },
+      {
+        "name": "interaction",
+        "value": "180ms",
+        "purpose": "Color, background, border-color and transform transitions."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.7s infinite",
+        "purpose": "Loading skeleton shimmer; disabled by reduced-motion preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide-min",
+        "value": "1650px",
+        "query": "(min-width: 1650px)"
+      },
+      {
+        "name": "desktop-max",
+        "value": "1200px",
+        "query": "(max-width: 1200px)"
+      },
+      {
+        "name": "tablet-max",
+        "value": "900px",
+        "query": "(max-width: 900px)"
+      },
+      {
+        "name": "mobile-max",
+        "value": "700px",
+        "query": "(max-width: 700px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Shared Button variant used for concise actions.",
+      "html": "<button class=\"ds-button-primary\">Choose download</button>",
+      "css": ".ds-button-primary{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:12px 17px;border:0;border-radius:8px;font-size:11px;font-weight:500;line-height:1.5;cursor:pointer;transition:color 180ms,background 180ms,border-color 180ms,transform 180ms var(--ease,cubic-bezier(0.16,1,0.3,1));background:var(--accent,#246bfd);color:#fff;}.ds-button-primary:hover{background:#1558df;}.ds-button-primary:focus-visible{outline:3px solid #246bfd80;outline-offset:3px;}.ds-button-primary:disabled{opacity:.48;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Shared Button variant used for concise actions.",
+      "html": "<button class=\"ds-button-secondary\">Clear filters</button>",
+      "css": ".ds-button-secondary{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:12px 17px;border:0;border-radius:8px;font-size:11px;font-weight:500;line-height:1.5;cursor:pointer;transition:color 180ms,background 180ms,border-color 180ms,transform 180ms var(--ease,cubic-bezier(0.16,1,0.3,1));background:#eaf1ff;color:#205eca;}.ds-button-secondary:hover{background:#dce9ff;}.ds-button-secondary:focus-visible{outline:3px solid #246bfd80;outline-offset:3px;}.ds-button-secondary:disabled{opacity:.48;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Shared Button variant used for concise actions.",
+      "html": "<button class=\"ds-button-ghost\">Back to apps</button>",
+      "css": ".ds-button-ghost{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:12px 17px;border:0;border-radius:8px;font-size:11px;font-weight:500;line-height:1.5;cursor:pointer;transition:color 180ms,background 180ms,border-color 180ms,transform 180ms var(--ease,cubic-bezier(0.16,1,0.3,1));background:transparent;color:#3c5c8a;}.ds-button-ghost:focus-visible{outline:3px solid #246bfd80;outline-offset:3px;}.ds-button-ghost:disabled{opacity:.48;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-button-ghost{transition:none;}}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Existing large search treatment; native input remains editable.",
+      "html": "<form class=\"ds-search\" role=\"search\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"Search apps\" placeholder=\"Find an app for your everyday\" /></form>",
+      "css": ".ds-search{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;gap:11px;min-height:52px;padding:14px 17px;border:1px solid #dce2ec;border-radius:10px;background:var(--surface,#fff);color:#738198;}.ds-search:focus-within{border-color:#8cb2ff;}.ds-search input{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;border:0;background:transparent;outline:none;min-width:0;flex:1;color:var(--ink,#17191d);font-size:13px;}.ds-search input::placeholder{color:var(--muted,#637083);}"
+    },
+    {
+      "name": "Primary Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "Desktop navigation active and inactive links.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Sample navigation\"><a href=\"#discover\" aria-current=\"page\">Discover</a><a href=\"#apps\">Browse apps</a></nav>",
+      "css": ".ds-nav{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;gap:5px;padding:12px;background:#f0f2f6;}.ds-nav a{display:flex;align-items:center;min-height:43px;padding:10px 12px;border-radius:8px;color:#3c4757;font-size:12px;font-weight:500;text-decoration:none;transition:color 180ms,background 180ms;}.ds-nav a:hover{background:#e5e9f1;color:var(--ink,#17191d);}.ds-nav a[aria-current]{background:#e1ebff;color:#1559d8;}.ds-nav a:focus-visible{outline:3px solid #246bfd80;outline-offset:3px;}@media(prefers-reduced-motion:reduce){.ds-nav a{transition:none;}}"
+    },
+    {
+      "name": "Category Filter",
+      "kind": "chip",
+      "refersTo": "category-selected",
+      "description": "Selected category filter button.",
+      "html": "<button class=\"ds-category\" aria-pressed=\"true\">Productivity</button>",
+      "css": ".ds-category{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;padding:9px 12px;border:0;border-radius:7px;min-height:37px;background:#e7efff;color:#1759d3;font-size:11px;font-weight:500;cursor:pointer;transition:background 180ms;}.ds-category:hover{background:#ebeff6;}.ds-category:focus-visible{outline:3px solid #246bfd80;outline-offset:3px;}@media(prefers-reduced-motion:reduce){.ds-category{transition:none;}}"
+    },
+    {
+      "name": "App Card",
+      "kind": "card",
+      "refersTo": "app-card",
+      "description": "Standard linked card structure with textual sample content; no fabricated marketplace statistics.",
+      "html": "<a class=\"ds-card\" href=\"#app\"><div class=\"ds-card-main\"><span class=\"ds-card-icon\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg></span><div class=\"ds-card-copy\"><h3>Example app</h3><p>Sample summary for the component preview.</p><span>Productivity</span></div><span class=\"ds-view\">View \u203a</span></div><div class=\"ds-card-footer\">Windows \u00b7 macOS \u00b7 Linux <span>Open source</span></div></a>",
+      "css": ".ds-card{font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;min-width:0;border:1px solid var(--border,#e8ebf0);border-radius:12px;background:var(--surface,#fff);color:var(--ink,#17191d);overflow:hidden;text-decoration:none;transition:background 180ms,border-color 180ms;}.ds-card:hover{border-color:#b9cbe8;background:#fcfdff;}.ds-card:focus-visible{outline:3px solid #246bfd80;outline-offset:3px;}.ds-card-main{display:flex;align-items:flex-start;gap:14px;padding:18px 16px;flex-wrap:wrap;}.ds-card-icon{display:grid;place-items:center;width:53px;height:53px;border-radius:17px;background:var(--selection,#ebf2ff);color:var(--accent,#246bfd);flex-shrink:0;}.ds-card-copy{flex:1;min-width:0;flex-basis:calc(100% - 72px);}.ds-card h3{margin:0 0 6px;font-size:13px;letter-spacing:-.015em;font-weight:600;}.ds-card p{margin:0;font-size:10px;line-height:1.6;color:var(--muted,#637083);}.ds-card-copy>span{display:block;font-size:9px;color:#6b7789;margin-top:6px;}.ds-view{margin-left:auto;padding:6px 8px;background:var(--selection,#ebf2ff);border-radius:20px;color:#185bda;font-size:9px;font-weight:500;}.ds-card-footer{display:flex;justify-content:space-between;gap:5px;border-top:1px solid #f0f2f6;padding:10px 16px;color:#697688;font-size:8px;}@media(prefers-reduced-motion:reduce){.ds-card{transition:none;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Welcoming Software Library",
+    "overview": "Commons is a light-first software library: calm editorial hierarchy, compact utility controls, and approachable app imagery. The user-selected balance is 60% Mac App Store, 25% Raycast, and 15% Setapp; this is directional inspiration, not permission to copy their identities.\n\nWhite surfaces sit on a cool gray canvas. Ink headings establish hierarchy; blue directs action and pale blue marks selection. Real app imagery carries personality while the surrounding interface stays restrained. The same primitives can support the teammate-owned developer portal without importing the marketplace\u2019s page composition.",
+    "keyCharacteristics": [
+      "Light canvas and white surfaces",
+      "Compact Inter typography with clear hierarchy",
+      "Blue actions and pale blue selection",
+      "Rounded panels, fine borders, restrained motion"
+    ],
+    "rules": [
+      {
+        "name": "The Action Blue Rule",
+        "body": "Use blue to signal action, focus, or selection; keep ordinary reading text in ink or muted neutrals.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Surface Rule",
+        "body": "Separate ordinary surfaces with tone and fine borders. Reserve the existing shadow treatment for product imagery.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse the existing light palette and self-hosted Inter weights.",
+      "Do preserve visible keyboard focus and reduced-motion behavior.",
+      "Do let real application imagery carry visual variety.",
+      "Do keep global design rules separate from route-specific composition in surface briefs."
+    ],
+    "donts": [
+      "Don't add unsupported ratings, download counts, verification, or success claims.",
+      "Don't replace the chosen light system with a dark-first interface.",
+      "Don't turn compact metadata into competing headings.",
+      "Don't invent portal form error or success styling and describe it as an existing component."
+    ]
+  }
+}
