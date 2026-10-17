@@ -33,7 +33,7 @@ New app status: draft → pending_review → published. Published updates change
 
 Approval atomically applies the submitted metadata, category, screenshots, selected release, and selected installers; unselected files never become public downloads. The public version data represents the approved distribution; older full snapshots remain in revision history. Existing published rows retain their stored distribution until a reviewed update. Legacy draft selections cannot be reconstructed, so their next submission requires explicit reconfirmation.
 
-There is no public moderator endpoint. A trusted operator inspects `application_revisions.snapshot` and runs:
+The protected `/admin` portal now provides routine review for server-configured administrators (`ADMIN_USER_IDS`), using version-checked atomic approval and reviewer attribution. See the backend setup guide. A trusted operator can still inspect `application_revisions.snapshot` and runs:
 
 ```sql
 select public.approve_application_revision('<reviewed-revision-uuid>');
