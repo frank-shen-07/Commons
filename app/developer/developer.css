@@ -7,6 +7,8 @@
 .publisher-notice { display:flex; align-items:flex-start; gap:14px; padding:20px 24px; border:1px solid #d8e5ff; border-radius:var(--radius); background:#eff5ff; color:#284a83; margin:20px 0; }
 .publisher-notice svg { flex-shrink:0; margin-top:3px; }
 .publisher-notice p { margin:4px 0 0; color:#506586; }
+.publisher-notice-copy { flex:1; min-width:0; }
+.publisher-connect-github { flex-shrink:0; }
 .publisher-section { margin-top:40px; }
 .publisher-section h2 { font-size:22px; letter-spacing:-.6px; }
 .publisher-count { font-size:12px; border-radius:20px; padding:4px 8px; background:var(--border); vertical-align:middle; }
@@ -68,5 +70,5 @@
 .publisher-spin { animation:publisher-spin 1s linear infinite; }
 @keyframes publisher-spin { to { transform:rotate(360deg); } }
 @media (max-width:1000px) { .publisher-config, .publisher-preview { grid-template-columns:1fr; } }
-@media (max-width:600px) { .publisher-heading, .publisher-draft { flex-direction:column; align-items:flex-start; } .publisher-heading h1 { letter-spacing:-1px; } .publisher-benefits { grid-template-columns:1fr; gap:10px; } .publisher-panel { padding:22px 18px; } .publisher-steps button { flex-direction:column; gap:8px; padding:12px 2px; font-size:11px; } .publisher-connect { flex-direction:column; align-items:stretch; } .publisher-notice { padding:16px; } .publisher-finish { padding:32px 18px; } }
+@media (max-width:600px) { .publisher-heading, .publisher-draft { flex-direction:column; align-items:flex-start; } .publisher-heading h1 { letter-spacing:-1px; } .publisher-benefits { grid-template-columns:1fr; gap:10px; } .publisher-panel { padding:22px 18px; } .publisher-steps button { flex-direction:column; gap:8px; padding:12px 2px; font-size:11px; } .publisher-connect { flex-direction:column; align-items:stretch; } .publisher-notice { padding:16px; flex-wrap:wrap; } .publisher-connect-github { flex:1 0 calc(100% - 34px); margin-left:34px; } .publisher-finish { padding:32px 18px; } }
 @media (prefers-reduced-motion:reduce) { .publisher-spin { animation:none; } }

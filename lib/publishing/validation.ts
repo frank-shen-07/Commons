@@ -6,3 +6,12 @@ export function repositoryName(value: string): string {
 export function isOfficialAssetUrl(value: string, repository: string): boolean {
  try { const url = new URL(value), segments = url.pathname.split("/").filter(Boolean); return url.protocol === "https:" && url.hostname === "github.com" && !url.username && !url.password && !url.port && segments.slice(0,2).join("/").toLowerCase() === repository.toLowerCase() && segments[2] === "releases" && segments[3] === "download" && segments.length >= 6; } catch { return false; }
 }
+
+export function isOfficialReleaseUrl(value: string, repository: string): boolean {
+ try {
+  const url = new URL(value), segments = url.pathname.split("/").filter(Boolean);
+  return url.protocol === "https:" && url.hostname === "github.com" && !url.username && !url.password && !url.port
+   && segments.slice(0, 2).join("/").toLowerCase() === repository.toLowerCase()
+   && segments[2] === "releases" && segments[3] === "tag" && segments.length >= 5;
+ } catch { return false; }
+}

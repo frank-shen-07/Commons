@@ -27,38 +27,38 @@ Design tokens and responsive rules live in `app/globals.css`. Tailwind CSS remai
 
 ## Member 2: marketplace integration
 
-There is no backend in this repository. `lib/api.ts` is the sole marketplace adapter; `lib/types.ts` defines **proposed, unconfirmed** contracts. Keep `MARKETPLACE_API_URL` unset for the labeled fixtures in `lib/fixtures.ts`.
+The backend is implemented with Supabase Auth/Postgres, versioned migrations, RLS, Zod validation, GitHub repository verification, and App Router APIs. Set `MARKETPLACE_API_URL=http://localhost:3000/api` in `.env.local` to use live public APIs. Leave it unset for the explicitly labeled fixtures in `lib/fixtures.ts`.
 
-After agreeing the contract, set the base URL (including `/api` if used) and adapt these routes if needed:
+`lib/api.ts` is the consumer integration adapter. It unwraps the documented envelopes and maps backend records to the consumer's `MarketplaceApp` type:
 
-- `GET /apps` → `MarketplaceApp[]`
-- `GET /apps/:slug` → `MarketplaceApp`, HTTP 404 when missing
-- `GET /categories` → `string[]`
+- `GET /api/apps?limit=50` → paginated published listings.
+- `GET /api/apps/{slug}` → one published listing, `404` when missing/unpublished.
+- `GET /api/categories` → public category names and counts.
+- `GET /api/apps/{slug}/download?platform=windows` → validated release URL when a single compatible asset is determinable.
 
-Additional presentation fields are `websiteUrl`, `color`, and `features`. Optional enrichment types cover developer, release, compatibility, and category data. Normalize team responses in the adapter. API failures surface the retry UI instead of silently substituting samples.
-
-Search, filters, and sorting currently operate on the fetched catalog in the browser. Paginated server search requires an agreed contract. No popularity or release-date sorting is offered without meaningful source data. The Discover collection uses editorial ordering, not a fabricated trending ranking. Unknown versions, dates, and release notes are not invented. Only OBS Studio and LibreOffice currently have screenshots; other apps have a missing-image state.
+Filtering, sorting and search parameters plus response/error shapes are documented in [docs/api-contracts.md](./docs/api-contracts.md). Local consumer search still filters the fetched first page; use API query parameters and pagination for a complete large catalog.
 
 ## Member 3: developer portal and distribution
 
-The portal is available at `/developer`. Import a **public** GitHub repository, configure its description, screenshots and stable release assets, preview the listing, and save a draft in browser storage. Drafts can be reopened, deleted, or exported as JSON. No credentials or new packages are required.
+The portal is available at `/developer`. It currently imports a public GitHub repository and saves editable drafts in browser storage; it does not yet invoke the authenticated backend APIs. The backend contracts are ready for portal integration, but the UI still marks local drafts as unpublished.
 
-Per the current integration scope, OAuth, ownership verification, database persistence, public publication, and marketplace ingestion are deferred to Member 2. The Publish step explicitly explains this and cannot publish. Public import does not establish publisher ownership. Existing marketplace sample data remains separate from local drafts.
-
-`GET /api/developer/import?repository=owner/repo` reads public metadata, licence, README and up to 20 recent releases using GitHub's unauthenticated REST API. Drafts and prereleases are excluded. This API is subject to GitHub's unauthenticated rate limits.
+`GET /api/developer/import?repository=owner/repo` remains an unauthenticated preview and does not establish ownership. For persistence, sign in through `/api/auth/github`, verify using `GET /api/developer/repositories/verify?repository=owner/repo`, submit a listing to `POST /api/apps`, edit it via `PATCH /api/apps/{id}`, then submit it via `POST /api/apps/{id}/publish`. The publish operation submits to moderation (`pending_review`), not public visibility.
 
 `GET /api/developer/download?repository=owner/repo&releaseId=123&assetId=456&platform=windows` re-fetches the release, checks asset membership, format and platform, and redirects only to that repository's HTTPS GitHub release download URL. This route supports draft-preview downloads; it does not claim publisher verification or software safety. Desktop installers supported: EXE, MSI, DMG, PKG, AppImage, DEB, RPM. Generic ZIP/TAR archives are excluded. Users explicitly choose a platform and named installer; unknown architectures remain labelled unknown.
 
 Implementation and future backend contracts: [docs/member-3-contracts.md](docs/member-3-contracts.md). Run the dependency-free distribution checks on Node 24 with `node --test tests/publishing.test.mjs`.
 
-The existing marketplace `DISTRIBUTION_DOWNLOAD_URL` adapter remains reserved for a future published-listing resolver. Do not point it at the draft download redirect: the marketplace expects a JSON `DownloadOption`, while the preview endpoint returns a redirect.
+The published-listing resolver returns JSON compatible with `DownloadOption`; the preview download endpoint remains a separate redirect flow. See [docs/backend-setup.md](./docs/backend-setup.md) and [docs/api-contracts.md](./docs/api-contracts.md) for OAuth, setup, request fields, errors, and moderation setup.
 
 ## Validation and limits
 
-Production build, TypeScript, and ESLint pass. Playwright covers global/developer search, category/platform/license filters, reset, sorting, grid/list views, keyboard search, screenshot next/previous, unsupported devices, GitHub Releases fallback, missing screenshots/apps, legacy route, sticky shell, image loading, and horizontal overflow at 1440, 1024, 768, and 390 pixels. Captures and a QA record are under `.impeccable/review/`.
+Backend validation run in this workspace:
 
-Live catalog/distribution APIs and the publishing portal remain integration tasks. Loading and retry components are implemented; no live-backend outage simulation was performed. The full dependency audit retains development-only findings through ESLint’s glob/micromatch/braces chain; the prior production audit reported no vulnerabilities.
+- `npm test` — 13 tests passed (Node 24).
+- `npm run typecheck`, `npm run lint`, and `npm run build` — passed.
+- `npm audit --omit=dev` — no production dependency vulnerabilities found.
+- Full `npm audit` still reports 5 high-severity findings in the existing development-only ESLint → fast-glob → micromatch → braces chain. npm's suggested fix is a breaking downgrade of `eslint-config-next`; it was not applied.
 
-### Member 3 validation in this workspace
+No Supabase credentials, local Postgres client, or Docker are configured here, so the migration was not applied and RLS/OAuth/GitHub live integration tests were not run. See [docs/backend-setup.md](./docs/backend-setup.md) for remaining setup and [docs/api-contracts.md](./docs/api-contracts.md) for endpoint guarantees. The developer portal UI still needs to be wired to the new authenticated APIs.
 
-Focused distribution tests and TS/TSX syntax checks passed. Full Next.js build, typecheck, lint, and browser/live GitHub journey verification were unavailable: dependency installation failed because the npm registry could not be resolved. The validation statements above describe the pre-existing frontend, not the new portal.
+The earlier frontend browser QA captures and notes under `.impeccable/review/` are pre-existing checks and were not rerun as part of the backend work.
