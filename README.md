@@ -13,6 +13,36 @@ npm run dev
 
 Open http://localhost:3000. Validation: `npm run lint`, `npm run typecheck`, `npm run build`.
 
+## Architecture
+
+```
++---------------------------------------------------------------+
+|                            Browser                            |
+|   Marketplace          Developer portal         Admin portal  |
+|   /, /apps             /developer               /admin        |
++---------------------------------------------------------------+
+                                |
+                                v
++---------------------------------------------------------------+
+|                    Next.js app (App Router)                   |
+|                                                               |
+|   Pages (server components) ---> API routes (app/api/*)       |
+|            |                              |                   |
+|            v                              v                   |
+|   Sample fixtures             lib/backend (auth, publishing,  |
+|   (no MARKETPLACE_API_URL)    review, downloads)              |
++---------------------------------------------------------------+
+                    |                               |
+                    v                               v
+       +-------------------------+     +-------------------------+
+       |        Supabase         |     |       GitHub API        |
+       |   Auth (GitHub OAuth)   |     |   repos, releases,      |
+       |   Postgres + RLS        |     |   search                |
+       +-------------------------+     +-------------------------+
+```
+
+Installers download directly from canonical github.com release URLs; the app only resolves which one.
+
 ## Routes and components
 
 - `/`: two screenshot-led features, compact app listings, an explicitly labeled New & Noteworthy sample selection, category collections, and a developer invitation.
