@@ -1,5 +1,6 @@
 {
   "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf",
   "kind": "Inter font from Google Fonts",
-  "retrieved": "2026-10-17"
+  "retrieved": "2026-10-17",
+  "converted": "WOFF2 from the TTF above with fontTools (no subsetting; identical glyphs)"
 }

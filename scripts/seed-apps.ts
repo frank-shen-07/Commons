@@ -7,6 +7,7 @@
 // mirror source to GitHub (VLC, LibreOffice, Blender, ...) are listed without
 // installers; their pages fall back to the official website. Re-running the
 // script refreshes the same rows instead of creating duplicates.
+// Re-seeding replaces screenshots, so run backfill-screenshots.ts afterwards.
 import { createClient } from "@supabase/supabase-js";
 import { classifyAsset } from "../lib/publishing/assets.ts";
 

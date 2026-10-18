@@ -8,6 +8,30 @@ const nextConfig: NextConfig = {
     // keeping idle memory low on small instances (e.g. Render's 512 MB tier).
     preloadEntriesOnStart: false,
   },
+  // /public files default to max-age=0, so every visit revalidates them.
+  // Fonts never change in place; images are cached for a day.
+  async headers() {
+    return [
+      {
+        source: "/fonts/:file*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/images/:file*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

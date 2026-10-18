@@ -3,8 +3,23 @@ import { fixtureApps } from "./fixtures";
 import { categories, platforms, type MarketplaceApp, type Platform } from "./types";
 import type { Application, Category, PaginatedResponse } from "@/src/types/api";
 // Server-side only. This adapter is the sole integration point for Member 2.
-const apiBase = process.env.MARKETPLACE_API_URL;
-export const usingFixtures = !apiBase;
+const configuredApiBase = process.env.MARKETPLACE_API_URL;
+export const usingFixtures = !configuredApiBase;
+// When the API is served by this same app (MARKETPLACE_API_URL on APP_URL's
+// origin), call it over loopback instead of a round trip out through the
+// public internet and the host's proxy. Any other API URL is used as is.
+function loopbackApiBase(base: string | undefined) {
+  const { PORT: port, APP_URL: appUrl } = process.env;
+  if (!base || !port || !appUrl) return base;
+  try {
+    const api = new URL(base);
+    if (api.origin !== new URL(appUrl).origin) return base;
+    return `http://127.0.0.1:${port}${api.pathname.replace(/\/$/, "")}`;
+  } catch {
+    return base;
+  }
+}
+const apiBase = loopbackApiBase(configuredApiBase);
 async function request<T>(path: string): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
     cache: "no-store",

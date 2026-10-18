@@ -27,9 +27,13 @@ export default async function DetailPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const app = await getApp((await params).slug);
+  // The catalog (for related apps) doesn't depend on the app, so fetch both
+  // at once rather than one after the other.
+  const [app, catalog] = await Promise.all([
+    getApp((await params).slug),
+    getApps(),
+  ]);
   if (!app) notFound();
-  const catalog = await getApps();
   const related = catalog
     .filter(
       (other) => other.slug !== app.slug && other.category === app.category,

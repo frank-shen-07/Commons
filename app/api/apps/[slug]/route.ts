@@ -21,20 +21,26 @@ export async function GET(_request: Request, { params }: RouteContext) {
       .maybeSingle();
     if (error) throw error;
     if (!app) throw new ApiError("Application not found.", 404, "NOT_FOUND");
-    const relations = await applicationRelations(supabase, [app]);
-    const { data: categories, error: categoryError } = await supabase
-      .from("application_categories")
-      .select("category_id")
-      .eq("application_id", app.id);
-    if (categoryError) throw categoryError;
-    const categoryIds = (categories ?? []).map((item) => item.category_id);
-    const categoryData = categoryIds.length
-      ? await supabase
-          .from("categories")
-          .select("id, name, slug")
-          .in("id", categoryIds)
-      : { data: [], error: null };
-    if (categoryData.error) throw categoryData.error;
+    // Independent lookups run concurrently to save database round trips.
+    const [relations, categoryData] = await Promise.all([
+      applicationRelations(supabase, [app]),
+      (async () => {
+        const { data: categories, error: categoryError } = await supabase
+          .from("application_categories")
+          .select("category_id")
+          .eq("application_id", app.id);
+        if (categoryError) throw categoryError;
+        const categoryIds = (categories ?? []).map((item) => item.category_id);
+        const result = categoryIds.length
+          ? await supabase
+              .from("categories")
+              .select("id, name, slug")
+              .in("id", categoryIds)
+          : { data: [], error: null };
+        if (result.error) throw result.error;
+        return result;
+      })(),
+    ]);
     const data = publicApplication(app, {
       ...relations.get(app.id),
       description: app.description,

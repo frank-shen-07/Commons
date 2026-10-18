@@ -71,16 +71,10 @@ export async function applicationSummaryRelations(
   const categoryIds = [
     ...new Set((categoryRows.data ?? []).map((item) => item.category_id)),
   ];
-  const categories = categoryIds.length
-    ? await supabase
-        .from("categories")
-        .select("id, name, slug")
-        .in("id", categoryIds)
-    : { data: [], error: null };
-  if (categories.error) throw categories.error;
-  const byCategory = new Map(
-    (categories.data ?? []).map((category) => [category.id, category]),
-  );
+  // Started here, awaited alongside the asset lookup (they're independent).
+  const categoriesQuery = categoryIds.length
+    ? supabase.from("categories").select("id, name, slug").in("id", categoryIds)
+    : Promise.resolve({ data: [], error: null });
   const byPublisher = new Map(
     (publisherRows.data ?? []).map((publisher) => [
       publisher.user_id,
@@ -101,14 +95,21 @@ export async function applicationSummaryRelations(
       version.application_id,
     ]),
   );
-  const latestAssets = latestVersionIds.length
-    ? await supabase
-        .from("release_assets")
-        .select("version_id, platform")
-        .in("version_id", latestVersionIds)
-        .in("kind", ["installer", "portable"])
-    : { data: [], error: null };
+  const [categories, latestAssets] = await Promise.all([
+    categoriesQuery,
+    latestVersionIds.length
+      ? supabase
+          .from("release_assets")
+          .select("version_id, platform")
+          .in("version_id", latestVersionIds)
+          .in("kind", ["installer", "portable"])
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (latestAssets.error) throw latestAssets.error;
+  if (categories.error) throw categories.error;
+  const byCategory = new Map(
+    (categories.data ?? []).map((category) => [category.id, category]),
+  );
   const platformsByApp = new Map<string, Set<string>>();
   for (const asset of latestAssets.data ?? []) {
     if (asset.platform === "unknown") continue;
@@ -199,16 +200,10 @@ export async function applicationRelations(
   const categoryIds = [
     ...new Set((categoryRows.data ?? []).map((item) => item.category_id)),
   ];
-  const categories = categoryIds.length
-    ? await supabase
-        .from("categories")
-        .select("id, name, slug")
-        .in("id", categoryIds)
-    : { data: [], error: null };
-  if (categories.error) throw categories.error;
-  const byCategory = new Map(
-    (categories.data ?? []).map((category) => [category.id, category]),
-  );
+  // Started here, awaited alongside the asset lookup (they're independent).
+  const categoriesQuery = categoryIds.length
+    ? supabase.from("categories").select("id, name, slug").in("id", categoryIds)
+    : Promise.resolve({ data: [], error: null });
   const byPublisher = new Map(
     (publisherRows.data ?? []).map((publisher) => [
       publisher.user_id,
@@ -216,16 +211,23 @@ export async function applicationRelations(
     ]),
   );
   const versionRows = versions.data ?? [];
-  const assetRows = versionRows.length
-    ? await supabase
-        .from("release_assets")
-        .select("*")
-        .in(
-          "version_id",
-          versionRows.map((version) => version.id),
-        )
-    : { data: [], error: null };
+  const [categories, assetRows] = await Promise.all([
+    categoriesQuery,
+    versionRows.length
+      ? supabase
+          .from("release_assets")
+          .select("*")
+          .in(
+            "version_id",
+            versionRows.map((version) => version.id),
+          )
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (assetRows.error) throw assetRows.error;
+  if (categories.error) throw categories.error;
+  const byCategory = new Map(
+    (categories.data ?? []).map((category) => [category.id, category]),
+  );
   const assetsByVersion = new Map<string, typeof assetRows.data>();
   for (const asset of assetRows.data ?? []) {
     const current = assetsByVersion.get(asset.version_id) ?? [];
