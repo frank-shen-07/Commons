@@ -161,7 +161,7 @@ export function Explore({
             apps={results}
             variant={view === "list" ? "compact" : "standard"}
           />
-        ) : (
+        ) : query.trim() ? null /* GitHub results below cover searches */ : (
           <EmptyState reset={reset} searchQuery={query.trim()} />
         )}
       </section>
