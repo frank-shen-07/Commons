@@ -115,9 +115,12 @@ export function GithubRepositoryResults({ query }: { query: string }) {
           Enter at least 3 characters to search GitHub.
         </p>
       ) : currentSearch.status === "loading" ? (
-        <p className="github-results-status" role="status">
-          Searching GitHub…
-        </p>
+        <div className="github-results-loading" role="status">
+          <span className="sr-only">Searching GitHub…</span>
+          {Array.from({ length: 6 }, (_, index) => (
+            <span className="skeleton" key={index} aria-hidden />
+          ))}
+        </div>
       ) : currentSearch.status === "error" ? (
         <div className="github-results-status github-results-error" role="alert">
           <p>{currentSearch.error}</p>

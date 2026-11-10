@@ -15,8 +15,10 @@ import {
 import {
   DownloadButton,
   FeatureList,
+  ReleaseNotes,
   ScreenshotGallery,
 } from "@/components/app-details";
+import { Markdown } from "@/components/markdown";
 
 type ImportState =
   | { repository: null; error: null }
@@ -234,7 +236,12 @@ export function PublicGithubAppDetail({
             </a>
           </section>
         ) : (
-          <p role="status">Loading public repository details…</p>
+          <div className="detail-loading" role="status">
+            <span className="sr-only">Loading public repository details…</span>
+            <span className="skeleton detail-loading-icon" aria-hidden />
+            <span className="skeleton skeleton-title" aria-hidden />
+            <span className="skeleton skeleton-text" aria-hidden />
+          </div>
         )
       ) : (
         <>
@@ -244,22 +251,24 @@ export function PublicGithubAppDetail({
               <h1>{app.name}</h1>
               <p>{app.summary}</p>
               <span className="byline">By {app.developerName}</span>
-              <span className="detail-category">GitHub</span>
-              {app.platforms.length > 0 ? (
-                <PlatformBadge app={app} />
-              ) : (
-                <span className="platforms">
-                  No supported installer found in stable releases
-                </span>
-              )}
-              <a
-                className="source-link"
-                href={app.repositoryUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View source code <ArrowUpRight size={13} />
-              </a>
+              <div className="detail-meta">
+                <span className="detail-category">GitHub</span>
+                {app.platforms.length > 0 ? (
+                  <PlatformBadge app={app} />
+                ) : (
+                  <span className="platforms">
+                    No supported installer found in stable releases
+                  </span>
+                )}
+                <a
+                  className="source-link"
+                  href={app.repositoryUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View source code <ArrowUpRight size={13} />
+                </a>
+              </div>
             </div>
           </div>
           <div className="detail-layout">
@@ -267,7 +276,7 @@ export function PublicGithubAppDetail({
               <ScreenshotGallery app={app} />
               <section className="detail-section">
                 <h2>A little about {app.name}.</h2>
-                <p>{app.description}</p>
+                <Markdown source={app.description} />
                 <FeatureList features={app.features} />
               </section>
               <section className="detail-section">
@@ -296,6 +305,20 @@ export function PublicGithubAppDetail({
                     <dd>{app.latestVersion ?? "No stable release found"}</dd>
                   </div>
                 </dl>
+              </section>
+              <section className="detail-section">
+                <h2>What’s new</h2>
+                {app.release?.notes ? (
+                  <ReleaseNotes notes={app.release.notes} />
+                ) : (
+                  <p>
+                    Release notes haven’t been added to this repository. Visit
+                    the developer for more information.
+                  </p>
+                )}
+                <a href={app.releasesUrl} target="_blank" rel="noreferrer">
+                  View official releases <ArrowUpRight size={14} />
+                </a>
               </section>
             </div>
             <aside>
@@ -333,24 +356,6 @@ export function PublicGithubAppDetail({
               </div>
             </aside>
           </div>
-          <section className="detail-section">
-            <h2>What’s new</h2>
-            {app.release?.notes ? (
-              <p className="release-notes">{app.release.notes}</p>
-            ) : (
-              <p>
-                Release notes haven’t been added to this repository. Visit the
-                developer for more information.
-              </p>
-            )}
-            <a
-              href={app.releasesUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View official releases <ArrowUpRight size={14} />
-            </a>
-          </section>
         </>
       )}
     </main>

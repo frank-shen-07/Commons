@@ -19,7 +19,6 @@ import {
   Palette,
   Play,
   Search,
-  Star,
   ShieldCheck,
   Wrench,
 } from "lucide-react";
@@ -119,6 +118,16 @@ export function AppCard({
   variant?: "standard" | "compact" | "preview";
   href?: string;
 }) {
+  const meta =
+    app.repositoryStars === undefined
+      ? app.category
+      : `${app.category} · ${app.repositoryStars.toLocaleString()} stars`;
+  const view = (
+    <span className="get-pill">
+      View
+      <ChevronRight size={12} />
+    </span>
+  );
   return (
     <Link href={href ?? `/apps/${app.slug}`} className={`app-card app-card-${variant}`}>
       {variant === "preview" && app.screenshots.length > 0 && (
@@ -137,31 +146,18 @@ export function AppCard({
         <div className="app-card-copy">
           <h3>{app.name}</h3>
           <p>{app.summary}</p>
-          <span className="app-category">
-            {app.category}
-            {app.repositoryStars !== undefined &&
-              ` · ${app.repositoryStars.toLocaleString()} stars`}
-          </span>
+          {variant !== "standard" && <span className="app-category">{meta}</span>}
         </div>
-        <span className="get-pill">
-          View
-          <ChevronRight size={12} />
-        </span>
+        {variant !== "standard" && view}
       </div>
-      {app.repositoryStars !== undefined ? (
+      {variant === "standard" && (
         <div className="app-card-bottom">
-          <span className="platforms">
-            <Star size={12} />
-            {app.repositoryStars.toLocaleString()} stars
-          </span>
-          <span>Public GitHub repo</span>
-        </div>
-      ) : (
-        app.platforms.length > 0 && (
-          <div className="app-card-bottom">
+          <span className="app-card-meta">
+            <span>{meta}</span>
             <PlatformBadge app={app} />
-          </div>
-        )
+          </span>
+          {view}
+        </div>
       )}
     </Link>
   );
@@ -285,19 +281,32 @@ export function CategoryCard({ name }: { name: string }) {
 }
 export function EmptyState({
   reset,
-  searchQuery = "",
+  category = "",
+  narrowed = false,
 }: {
-  reset: () => void;
-  searchQuery?: string;
+  /** Omit when there is nothing to clear. */
+  reset?: () => void;
+  category?: string;
+  /** A device or license filter is on, beyond the category. */
+  narrowed?: boolean;
 }) {
+  const subject = category ? `${category} apps` : "apps";
   return (
     <div className="empty-state">
-      <Search size={32} />
-      <h2>{searchQuery ? "No Commons apps match this search" : "No apps found"}</h2>
-      {searchQuery && <p>You can also search public GitHub repositories below.</p>}
-      <Button variant="secondary" onClick={reset}>
-        Clear search & filters
-      </Button>
+      <Search size={28} strokeWidth={1.6} aria-hidden />
+      <h2>{narrowed ? `No ${subject} match these filters` : `No ${subject} yet`}</h2>
+      {reset && (
+        <>
+          <p>
+            {narrowed
+              ? "Try another device or license, or clear the filters to see everything."
+              : "Try another category, or clear the filters to see everything."}
+          </p>
+          <Button variant="secondary" onClick={reset}>
+            Clear search & filters
+          </Button>
+        </>
+      )}
     </div>
   );
 }

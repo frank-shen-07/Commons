@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useSyncExternalStore } from "react";
 import {
   ArrowUpRight,
   Compass,
@@ -26,9 +26,37 @@ const categories = [
   { name: "Utilities", icon: Wrench },
   { name: "Security & Privacy", icon: Shield },
 ];
+const subscribeNever = () => () => {};
+const isApplePlatform = () => /Mac|iPhone|iPad/i.test(navigator.userAgent);
+function CategoryLinks({ active }: { active: string | null }) {
+  return categories.map(({ name, icon: Icon }) => (
+    <Link
+      key={name}
+      href={`/apps?category=${encodeURIComponent(name)}`}
+      aria-current={active === name ? "true" : undefined}
+    >
+      <Icon size={17} />
+      {name}
+    </Link>
+  ));
+}
+// Reads the query string, so it renders inside Suspense: static pages
+// prerender the plain links and mark the active category after hydration.
+function ActiveCategoryLinks() {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const browsing = pathname === "/apps" || pathname === "/explore";
+  return <CategoryLinks active={browsing ? params.get("category") : null} />;
+}
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  // The server renders the Mac hint; other platforms correct it on hydration.
+  const apple = useSyncExternalStore(
+    subscribeNever,
+    isApplePlatform,
+    () => true,
+  );
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -67,15 +95,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <span className="sidebar-label">Categories</span>
         <nav className="sidebar-categories" aria-label="App categories">
-          {categories.map(({ name, icon: Icon }) => (
-            <Link
-              key={name}
-              href={`/apps?category=${encodeURIComponent(name)}`}
-            >
-              <Icon size={17} />
-              {name}
-            </Link>
-          ))}
+          <Suspense fallback={<CategoryLinks active={null} />}>
+            <ActiveCategoryLinks />
+          </Suspense>
         </nav>
         <div className="sidebar-bottom">
           <Link href="/developer" className="sidebar-publish">
@@ -101,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="Search apps and public GitHub repositories"
               placeholder="Search apps and public GitHub repositories"
             />
-            <kbd>⌘ K</kbd>
+            <kbd>{apple ? "⌘ K" : "Ctrl K"}</kbd>
             <button type="submit" aria-label="Search">
               <Search size={16} />
             </button>

@@ -2,16 +2,38 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   Code2,
+  Layers2,
   LockKeyhole,
   Palette,
   ArrowRight,
 } from "lucide-react";
 import {
   AppGrid,
+  AppIcon,
   CategoryCard,
   FeaturedAppCard,
   SectionHeading,
 } from "@/components/marketplace";
+const collections = [
+  {
+    title: "The creative toolkit",
+    category: "Creativity",
+    tone: "creative",
+    icon: Palette,
+  },
+  {
+    title: "A little more private",
+    category: "Security & Privacy",
+    tone: "privacy",
+    icon: LockKeyhole,
+  },
+  {
+    title: "Make space for focus",
+    category: "Productivity",
+    tone: "work",
+    icon: Layers2,
+  },
+];
 import { getApps, getCategories, usingFixtures } from "@/lib/api";
 export default async function Home() {
   const [apps, categories] = await Promise.all([getApps(), getCategories()]);
@@ -21,14 +43,23 @@ export default async function Home() {
     : apps.filter((app) => app.featured).slice(0, 2);
   // Later sections skip apps already featured above.
   const featuredIds = new Set(featured.map((app) => app.id));
-  const everyday = apps.filter((app) => !featuredIds.has(app.id)).slice(0, 6);
+  // Newest listings first, so the heading says something true.
   const noteworthy = withScreenshots
     .filter((app) => !featuredIds.has(app.id))
+    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
     .slice(0, 2);
+  const shownIds = new Set([
+    ...featuredIds,
+    ...noteworthy.map((app) => app.id),
+  ]);
+  const everyday = apps.filter((app) => !shownIds.has(app.id)).slice(0, 6);
   return (
     <main id="main" className="page-container discover-page">
       <div className="page-heading">
-        <h1>Discover</h1>
+        <div>
+          <h1>Discover</h1>
+          <p>Free and open-source apps for everyday life.</p>
+        </div>
       </div>
       {usingFixtures && (
         <p className="sample-label">
@@ -57,36 +88,37 @@ export default async function Home() {
       <section className="discovery-section">
         <SectionHeading title="Collections" />
         <div className="collection-grid">
-          <Link
-            href="/apps?category=Creativity"
-            className="collection collection-creative"
-          >
-            <Palette size={27} />
-            <div>
-              <h3>The creative toolkit</h3>
-            </div>
-            <ArrowUpRight size={17} />
-          </Link>
-          <Link
-            href="/apps?category=Security%20%26%20Privacy"
-            className="collection collection-privacy"
-          >
-            <LockKeyhole size={27} />
-            <div>
-              <h3>A little more private</h3>
-            </div>
-            <ArrowUpRight size={17} />
-          </Link>
-          <Link
-            href="/apps?category=Productivity"
-            className="collection collection-work"
-          >
-            <Code2 size={27} />
-            <div>
-              <h3>Make space for focus</h3>
-            </div>
-            <ArrowUpRight size={17} />
-          </Link>
+          {collections.map(({ title, category, tone, icon: Icon }) => {
+            const members = apps.filter((app) => app.category === category);
+            const names = members.slice(0, 3).map((app) => app.name);
+            return (
+              <Link
+                key={category}
+                href={`/apps?category=${encodeURIComponent(category)}`}
+                className={`collection collection-${tone}`}
+              >
+                {members.length > 0 ? (
+                  <span className="collection-apps" aria-hidden>
+                    {members.slice(0, 4).map((app) => (
+                      <AppIcon app={app} key={app.id} />
+                    ))}
+                  </span>
+                ) : (
+                  <Icon size={27} />
+                )}
+                <div>
+                  <h3>{title}</h3>
+                  {names.length > 0 && (
+                    <p>
+                      {names.join(", ")}
+                      {members.length > names.length && " and more"}
+                    </p>
+                  )}
+                </div>
+                <ArrowUpRight size={17} />
+              </Link>
+            );
+          })}
         </div>
       </section>
       <section className="discovery-section" id="categories">

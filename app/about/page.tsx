@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 export const metadata = { title: "About Commons" };
 export default function About() {
   return (
@@ -19,7 +20,9 @@ export default function About() {
           Some projects offer paid services or optional upgrades. Check the
           developer’s website for the details.
         </p>
-        <Link href="/explore">Find an app you’ll love →</Link>
+        <Link href="/apps">
+          Find an app you’ll love <ArrowRight size={14} />
+        </Link>
       </section>
       <section id="developers" className="detail-section">
         <h2>Your work deserves to be discovered.</h2>
@@ -28,9 +31,9 @@ export default function About() {
           repository you maintain, choose release assets, and submit your app
           for review. Approved listings appear in the marketplace.
         </p>
-        <p>
-          <Link href="/developer">Open your developer workspace →</Link>
-        </p>
+        <Link href="/developer">
+          Open your developer workspace <ArrowRight size={14} />
+        </Link>
       </section>
     </main>
   );

@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -17,6 +17,21 @@ import {
 import { Button } from "./ui/button";
 import Image from "next/image";
 import type { DownloadChoice } from "@/src/types/api";
+import { Markdown } from "./markdown";
+
+// The visitor's desktop platform, as far as the browser reveals it.
+function detectPlatform(): Platform | "" {
+  const agent = navigator.userAgent;
+  if (
+    /Android|iPhone|iPad|iPod|CrOS/i.test(agent) ||
+    navigator.maxTouchPoints > 1
+  )
+    return "";
+  if (/Windows/i.test(agent)) return "windows";
+  if (/Macintosh|Mac OS X/i.test(agent)) return "macos";
+  if (/Linux|X11/i.test(agent)) return "linux";
+  return "";
+}
 export function DownloadButton({
   app,
   endpoint,
@@ -24,7 +39,21 @@ export function DownloadButton({
   app: MarketplaceApp;
   endpoint?: string;
 }) {
-  const [platform, setPlatform] = useState<Platform | "">("");
+  // Until the visitor chooses, preselect their own device when this listing
+  // supports it.
+  const [chosen, setPlatform] = useState<Platform | "" | null>(null);
+  const [detected, setDetected] = useState<Platform | "">("");
+  const deviceSelect = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    // Runs after hydration, and leaves the field alone if the visitor already
+    // picked a device while the page was still loading.
+    const timer = window.setTimeout(() => {
+      if (deviceSelect.current?.value === "") setDetected(detectPlatform());
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const platform: Platform | "" =
+    chosen ?? (detected && app.platforms.includes(detected) ? detected : "");
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
@@ -34,6 +63,10 @@ export function DownloadButton({
     [instructions, setInstructions] = useState("");
   const sequence = useRef(0);
   const supported = platform && app.platforms.includes(platform);
+  // A listing with no installers of its own hands off to the developer's
+  // official page instead of offering a device choice that can't succeed.
+  const direct = Boolean(endpoint) && app.platforms.length > 0;
+  const chooseDevice = direct || !endpoint;
   const selected = choices.find((choice) => choice.assetId === assetId);
   async function download() {
     if (!platform || !endpoint) return;
@@ -102,29 +135,34 @@ export function DownloadButton({
   return (
     <section className="download-panel" aria-label="Get this application">
       <h2>Get the app</h2>
-      <label htmlFor="download-platform">Choose your device</label>
-      <select
-        id="download-platform"
-        value={platform}
-        onChange={(e) => {
-          sequence.current++;
-          setPlatform(e.target.value as Platform);
-          setBusy(false);
-          setMessage("");
-          setError("");
-          setChoices([]);
-          setAssetId("");
-          setAcknowledged(false);
-          setInstructions("");
-        }}
-      >
-        <option value="">Select your device</option>
-        {platforms.map((p) => (
-          <option key={p} value={p}>
-            {platformLabels[p]}
-          </option>
-        ))}
-      </select>
+      {chooseDevice && (
+        <>
+          <label htmlFor="download-platform">Choose your device</label>
+          <select
+            id="download-platform"
+            ref={deviceSelect}
+            value={platform}
+            onChange={(e) => {
+              sequence.current++;
+              setPlatform(e.target.value as Platform);
+              setBusy(false);
+              setMessage("");
+              setError("");
+              setChoices([]);
+              setAssetId("");
+              setAcknowledged(false);
+              setInstructions("");
+            }}
+          >
+            <option value="">Select your device</option>
+            {platforms.map((p) => (
+              <option key={p} value={p}>
+                {platformLabels[p]}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
       {platform && !supported && (
         <p role="status">
           This listing doesn’t include a {platformLabels[platform]} download.
@@ -166,7 +204,7 @@ export function DownloadButton({
           )}
         </>
       )}
-      {endpoint ? (
+      {direct ? (
         <Button
           onClick={() => void download()}
           disabled={
@@ -198,7 +236,7 @@ export function DownloadButton({
           </a>
         </Button>
       )}
-      {!endpoint && (
+      {!direct && (
         <p className="download-guidance">
           Choose a compatible installer on the official release page, then open
           the downloaded file to begin.
@@ -219,43 +257,67 @@ export function DownloadButton({
 }
 export function ScreenshotGallery({ app }: { app: MarketplaceApp }) {
   const [index, setIndex] = useState(0);
-  if (!app.screenshots.length) return null;
+  const count = app.screenshots.length;
+  if (!count) return null;
+  const step = (by: number) => setIndex((index + by + count) % count);
   return (
-    <section aria-label="App screenshots" className="screenshot-gallery">
+    <section
+      aria-label="App screenshots"
+      className="screenshot-gallery"
+      onKeyDown={(event) => {
+        if (count < 2) return;
+        if (event.key === "ArrowLeft") step(-1);
+        if (event.key === "ArrowRight") step(1);
+      }}
+    >
       <Image
+        key={app.screenshots[index]}
         unoptimized
+        priority
         width={1200}
         height={750}
         src={app.screenshots[index]}
         alt={`${app.name} screenshot ${index + 1}`}
       />
-      <div>
-        <Button
-          variant="secondary"
-          aria-label="Previous screenshot"
-          onClick={() =>
-            setIndex(
-              (index + app.screenshots.length - 1) % app.screenshots.length,
-            )
-          }
-        >
-          <ChevronLeft size={17} />
-        </Button>
-        <span aria-live="polite">
-          {index + 1} of {app.screenshots.length}
-        </span>
-        <Button
-          variant="secondary"
-          aria-label="Next screenshot"
-          onClick={() => setIndex((index + 1) % app.screenshots.length)}
-        >
-          <ChevronRight size={17} />
-        </Button>
-      </div>
+      {count > 1 && (
+        <div className="screenshot-controls">
+          <Button
+            variant="secondary"
+            aria-label="Previous screenshot"
+            onClick={() => step(-1)}
+          >
+            <ChevronLeft size={17} />
+          </Button>
+          <div className="screenshot-thumbs">
+            {app.screenshots.map((src, position) => (
+              <button
+                type="button"
+                key={src}
+                aria-label={`Show screenshot ${position + 1} of ${count}`}
+                aria-current={position === index ? "true" : undefined}
+                onClick={() => setIndex(position)}
+              >
+                <Image unoptimized width={160} height={100} src={src} alt="" />
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="secondary"
+            aria-label="Next screenshot"
+            onClick={() => step(1)}
+          >
+            <ChevronRight size={17} />
+          </Button>
+          <span className="sr-only" aria-live="polite">
+            Screenshot {index + 1} of {count}
+          </span>
+        </div>
+      )}
     </section>
   );
 }
 export function FeatureList({ features }: { features: string[] }) {
+  if (!features.length) return null;
   return (
     <ul className="feature-list">
       {features.map((feature) => (
@@ -275,12 +337,11 @@ export function ReleaseNotes({ notes }: { notes: string }) {
   const long = notes.length > 600 || notes.split("\n").length > 10;
   return (
     <div className="release">
-      <p
+      <Markdown
         id="release-notes"
-        className={`release-notes ${long && !expanded ? "release-clamped" : ""}`}
-      >
-        {notes}
-      </p>
+        source={notes}
+        className={long && !expanded ? "release-clamped" : ""}
+      />
       {long && (
         <button
           type="button"
