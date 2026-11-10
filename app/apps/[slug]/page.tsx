@@ -14,13 +14,23 @@ import {
   ReleaseNotes,
   ScreenshotGallery,
 } from "@/components/app-details";
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Australia/Sydney",
+  });
+}
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const app = await getApp((await params).slug);
-  return { title: app?.name ?? "App not found" };
+  return app
+    ? { title: app.name, description: app.summary }
+    : { title: "App not found" };
 }
 export default async function DetailPage({
   params,
@@ -56,31 +66,33 @@ export default async function DetailPage({
           <h1>{app.name}</h1>
           <p>{app.summary}</p>
           <span className="byline">By {app.developerName}</span>
-          <Link
-            className="detail-category"
-            href={`/apps?category=${encodeURIComponent(app.category)}`}
-          >
-            {app.category}
-          </Link>
-          <PlatformBadge app={app} />
-          <a
-            className="source-link"
-            href={app.repositoryUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Source code <ArrowUpRight size={13} />
-          </a>
-          {app.websiteUrl && (
+          <div className="detail-meta">
+            <Link
+              className="detail-category"
+              href={`/apps?category=${encodeURIComponent(app.category)}`}
+            >
+              {app.category}
+            </Link>
+            <PlatformBadge app={app} />
             <a
               className="source-link"
-              href={app.websiteUrl}
+              href={app.repositoryUrl}
               target="_blank"
               rel="noreferrer"
             >
-              Website <ArrowUpRight size={13} />
+              Source code <ArrowUpRight size={13} />
             </a>
-          )}
+            {app.websiteUrl && (
+              <a
+                className="source-link"
+                href={app.websiteUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Website <ArrowUpRight size={13} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
       <div className="detail-layout">
@@ -88,7 +100,12 @@ export default async function DetailPage({
           <ScreenshotGallery app={app} />
           <section className="detail-section">
             <h2>About</h2>
-            <p>{app.description}</p>
+            {app.description
+              .split(/\n{2,}/)
+              .filter((paragraph) => paragraph.trim())
+              .map((paragraph, index) => (
+                <p key={index}>{paragraph.trim()}</p>
+              ))}
             <FeatureList features={app.features} />
           </section>
           <section className="detail-section">
@@ -118,13 +135,43 @@ export default async function DetailPage({
                 <div>
                   <dt>Updated</dt>
                   <dd>
-                    {new Date(app.updatedAt).toLocaleDateString("en-AU", {
-                      timeZone: "Australia/Sydney",
-                    })}
+                    <time dateTime={app.updatedAt}>
+                      {formatDate(app.updatedAt)}
+                    </time>
                   </dd>
                 </div>
               )}
             </dl>
+          </section>
+          <section className="detail-section">
+            <h2>What’s new</h2>
+            {app.release && (
+              <p className="release-version">
+                Version {app.release.version}
+                {app.release.publishedAt && (
+                  <>
+                    {" · "}
+                    <time dateTime={app.release.publishedAt}>
+                      {formatDate(app.release.publishedAt)}
+                    </time>
+                  </>
+                )}
+              </p>
+            )}
+            {app.release?.notes ? (
+              <ReleaseNotes notes={app.release.notes} />
+            ) : (
+              <p>No release notes yet.</p>
+            )}
+            {(app.releasesUrl || app.release?.releasesUrl) && (
+              <a
+                href={app.release?.releasesUrl ?? app.releasesUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                All releases <ArrowUpRight size={14} />
+              </a>
+            )}
           </section>
         </div>
         <aside>
@@ -137,23 +184,6 @@ export default async function DetailPage({
           />
         </aside>
       </div>
-      <section className="detail-section">
-        <h2>What’s new</h2>
-        {app.release?.notes ? (
-          <ReleaseNotes notes={app.release.notes} />
-        ) : (
-          <p>No release notes yet.</p>
-        )}
-        {(app.releasesUrl || app.release?.releasesUrl) && (
-          <a
-            href={app.release?.releasesUrl ?? app.releasesUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            All releases <ArrowUpRight size={14} />
-          </a>
-        )}
-      </section>
       {related.length > 0 && (
         <section className="discovery-section related-section">
           <SectionHeading title="You might also like" />

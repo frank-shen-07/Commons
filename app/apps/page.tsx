@@ -20,11 +20,9 @@ export default async function ExplorePage({
         </p>
       )}
       <Explore
-        key={`${params.q ?? ""}:${params.category ?? ""}`}
         apps={apps}
         categories={categories}
         initialQuery={params.q ?? ""}
-        initialCategory={params.category ?? ""}
       />
     </main>
   );

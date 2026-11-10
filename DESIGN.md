@@ -28,11 +28,11 @@ typography:
     fontWeight: 400
   prose:
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "12px"
-    lineHeight: 1.9
+    fontSize: "13px"
+    lineHeight: 1.75
   label:
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
-    fontSize: "11px"
+    fontSize: "12px"
     fontWeight: 500
     lineHeight: 1.5
 rounded:
@@ -134,8 +134,10 @@ The character is precise and approachable. Headings use tight tracking; metadata
 - **Headline:** page identification; inner-page headings also use a nearby larger size (32px).
 - **Title:** section labels and detail section headings.
 - **Body:** default document text.
-- **Prose:** detail paragraphs, with an observed maximum width (72ch).
+- **Prose:** detail paragraphs and rendered release notes, in secondary ink (`--ink-2`) with a maximum width (72ch).
 - **Label:** button text; metadata uses 11–12px. 11px is the floor; nothing renders smaller.
+- **Navigation and cards:** sidebar links are 13px (categories 12px); app names are 14px semibold over a 12px summary.
+- **Touch fields:** at mobile width, search inputs and selects render at 16px so iOS does not zoom the page on focus.
 
 ## Layout
 
@@ -150,7 +152,7 @@ Responsive behavior is defined in CSS, not by framework-default breakpoints:
 | At most 900px | Sidebar becomes 168px; gutters 22px; compact app grids use two columns; detail content stacks. |
 | At most 700px | Sidebar is hidden; gutters 20px; search occupies its own topbar row; fixed bottom navigation appears; standard and related app grids become one column. |
 
-At mobile width the topbar is auto-height with an observed minimum (108px), even though the topbar custom property changes to (65px). Preserve room below content for fixed bottom navigation. Category filters scroll horizontally on mobile. Route composition and interaction mode belong in `.impeccable/surfaces/marketplace.md`, not in global tokens.
+At mobile width the topbar is auto-height with an observed minimum (108px), even though the topbar custom property changes to (65px). Preserve room below content for fixed bottom navigation. Category filters scroll horizontally on mobile, with the scrollbar hidden and a fade at the trailing edge. Route composition and interaction mode belong in `.impeccable/surfaces/marketplace.md`, not in global tokens.
 
 ## Elevation & Depth
 
@@ -182,11 +184,23 @@ Category filter buttons use a soft rectangular shape (7px corners), transparent 
 
 ### Cards / Containers
 
-Standard app cards are white with a fine border and the frontmatter card radius. Hover changes border to `#b9cbe8` and fill to `#fcfdff`. Content padding is (18px 16px). Compact rows drop the outer box and retain a bottom divider. Preview cards add a real screenshot above app identity. Put category metadata below the app name and summary. Featured panels use the panel radius and image-led color treatments; their page arrangement is documented in the marketplace surface brief.
+Standard app cards are white with a fine border and the frontmatter card radius. Hover changes border to `#b9cbe8` and fill to `#fcfdff`. Content padding is (18px 16px). Every standard card ends in one footer row: category and platforms on the left, the View pill on the right, so cards in a grid stay the same shape whether or not platforms are listed; summaries clamp to two lines. Compact rows drop the outer box and retain a bottom divider; their hover tints the app name rather than filling the row. Compact and preview cards keep category metadata below the app name and summary. Preview cards add a real screenshot above app identity. Collection panels show a short overlapping stack of the category's real app icons and name up to three of its apps; they never show counts. Featured panels use the panel radius and image-led color treatments; their page arrangement is documented in the marketplace surface brief.
 
 ### Focus and Motion
 
 Interactive links, buttons, selects, inputs, and summaries receive a visible focus outline (`3px solid #246bfd80`, offset `3px`). Search inputs use the surrounding field's focus-within border. Global color/background/border transitions last (180ms); transforms use the existing ease curve. Featured links lift (3px) and collection links lift (2px) on hover. Loading skeletons shimmer over (1.7s). Reduced-motion preference removes animation, transitions, and smooth scrolling.
+
+### Detail page
+
+The header is followed by one reading column (gallery, About, Information, What's new) beside a sticky download panel; at 900px and below the panel moves above the column. The gallery holds one screenshot in a fixed 16:10 stage with thumbnail buttons and previous/next controls beneath it; arrow keys step through while focus is inside. The download panel preselects the visitor's desktop platform when the listing supports it and always leaves the choice editable.
+
+### Publisher Markdown
+
+Release notes and README excerpts render through `components/markdown.tsx`, which builds elements directly, drops raw HTML and images, and links only to http(s). Headings inside the text sit below the page's own section headings. GitHub alerts (`> [!IMPORTANT]`) become bordered callouts on the warning tokens; plain quotes and code use the sunken surface. Monospace appears only for code.
+
+### Status pages
+
+Not-found and error pages centre an icon, the inner-page heading, one sentence, and a primary plus secondary action in the content area. The dashed empty-state box is reserved for empty result sets inside a page.
 
 ## Do's and Don'ts
 

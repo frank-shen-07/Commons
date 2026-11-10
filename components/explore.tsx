@@ -1,22 +1,43 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, X, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import { AppGrid, EmptyState } from "./marketplace";
 import { GithubRepositoryResults } from "./github-repositories";
 import { platforms, platformLabels, type MarketplaceApp } from "@/lib/types";
+// Rewrites the address bar without a navigation, so a filtered view can be
+// shared, reloaded, or returned to with the back button.
+function writeFilters(query: string, category: string) {
+  const next = new URLSearchParams();
+  if (query) next.set("q", query);
+  if (category) next.set("category", category);
+  try {
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${next.size ? `?${next}` : ""}`,
+    );
+  } catch {
+    // Browsers limit how often history can change; the next edit catches up.
+  }
+}
 export function Explore({
   apps,
   categories,
   initialQuery,
-  initialCategory,
 }: {
   apps: MarketplaceApp[];
   categories: string[];
   initialQuery: string;
-  initialCategory: string;
 }) {
+  const params = useSearchParams();
+  // The category lives in the address bar; the search field is local state
+  // that is written there shortly after typing stops.
+  const category = params.get("category") ?? "";
+  const urlQuery = params.get("q") ?? "";
   const [query, setQuery] = useState(initialQuery),
-    [category, setCategory] = useState(initialCategory),
+    [writtenQuery, setWrittenQuery] = useState(initialQuery),
+    [seenQuery, setSeenQuery] = useState(urlQuery),
     [platform, setPlatform] = useState(""),
     [license, setLicense] = useState(""),
     [sort, setSort] = useState("featured"),
@@ -43,9 +64,35 @@ export function Explore({
         ? a.name.localeCompare(b.name)
         : Number(!!b.featured) - Number(!!a.featured),
     );
+  // A navigation (the top-bar search, a sidebar link) changes the address
+  // while this view stays mounted: adopt its search unless we wrote it.
+  if (urlQuery !== seenQuery) {
+    setSeenQuery(urlQuery);
+    if (urlQuery !== writtenQuery) {
+      setQuery(urlQuery);
+      setWrittenQuery(urlQuery);
+    }
+  }
+  const search = query.trim();
+  useEffect(() => {
+    if (search === urlQuery) return;
+    const timer = window.setTimeout(() => {
+      setWrittenQuery(search);
+      writeFilters(search, category);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [search, urlQuery, category]);
+  const setCategory = (next: string) => {
+    setWrittenQuery(search);
+    writeFilters(search, next);
+  };
+  const filtered = Boolean(
+    query || category || platform || license || sort !== "featured",
+  );
   const reset = () => {
     setQuery("");
-    setCategory("");
+    setWrittenQuery("");
+    writeFilters("", "");
     setPlatform("");
     setLicense("");
     setSort("featured");
@@ -69,6 +116,7 @@ export function Explore({
       <div
         className="category-filters"
         id="categories"
+        role="group"
         aria-label="Category filters"
       >
         {["", ...categories].map((c) => (
@@ -116,15 +164,18 @@ export function Explore({
             </select>
           </label>
         )}
-        <button className="reset-button" onClick={reset}>
-          Reset filters
-          <X size={12} />
-        </button>
+        {filtered && (
+          <button className="reset-button" onClick={reset}>
+            Reset filters
+            <X size={12} />
+          </button>
+        )}
       </div>
       <section className={`results results-${view}`}>
         <div className="results-heading">
           <p role="status">
             {results.length} {results.length === 1 ? "app" : "apps"}
+            {category && ` in ${category}`}
           </p>
           <div className="result-controls">
             <label>
@@ -138,7 +189,11 @@ export function Explore({
                 <option value="name">Name A–Z</option>
               </select>
             </label>
-            <div className="view-toggle" aria-label="Result layout">
+            <div
+              className="view-toggle"
+              role="group"
+              aria-label="Result layout"
+            >
               <button
                 aria-label="Grid view"
                 aria-pressed={view === "grid"}
@@ -162,7 +217,11 @@ export function Explore({
             variant={view === "list" ? "compact" : "standard"}
           />
         ) : query.trim() ? null /* GitHub results below cover searches */ : (
-          <EmptyState reset={reset} searchQuery={query.trim()} />
+          <EmptyState
+            reset={filtered ? reset : undefined}
+            category={category}
+            narrowed={Boolean(platform || license)}
+          />
         )}
       </section>
       <GithubRepositoryResults query={query} />
